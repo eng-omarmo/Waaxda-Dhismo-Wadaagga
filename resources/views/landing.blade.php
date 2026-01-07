@@ -12,9 +12,11 @@
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}">
     <style>
         :root {
-            --mu-blue: #002d80; /* Deepened for better contrast */
+            --mu-blue: #002d80;
+            /* Deepened for better contrast */
             --mu-blue-dark: #001a4d;
-            --mu-green: #1e7e34; /* Darkened for accessibility */
+            --mu-green: #1e7e34;
+            /* Darkened for accessibility */
             --mu-dark: #121416;
             --mu-grey-bg: #f8f9fc;
         }
@@ -49,7 +51,10 @@
         .hero-gradient::after {
             content: "";
             position: absolute;
-            top: 0; right: 0; bottom: 0; left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
             background: url("https://www.transparenttextures.com/patterns/cubes.png");
             opacity: 0.05;
         }
@@ -64,7 +69,7 @@
 
         .service-card:hover {
             transform: translateY(-8px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
             border-color: var(--mu-blue);
         }
 
@@ -93,10 +98,11 @@
             border-radius: 15px;
             padding: 40px;
             border: 1px solid #e3e6f0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             border: 2px solid #edeff5;
             padding: 12px 15px;
             font-weight: 600;
@@ -115,8 +121,8 @@
         }
 
         .badge-gov {
-            background-color: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             text-transform: uppercase;
             letter-spacing: 1px;
             font-weight: 700;
@@ -165,36 +171,101 @@
         <section id="services" class="container py-5 mt-4">
             <div class="text-center mb-5">
                 <h2 class="section-heading">Adeegyada aan Bixino</h2>
-                <p class="text-muted mx-auto" style="max-width: 600px;">Dooro adeegga aad u baahan tahay si aad u bilowdo habraaca diiwaangelinta.</p>
+                <p class="text-muted mx-auto" style="max-width: 600px;">
+                    Ku dhufo adeegga aad u baahan tahay si aad u bilowdo habraaca diiwaangelinta ama codsiga.
+                </p>
             </div>
 
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card h-100 service-card border-0 shadow-sm p-4">
-                        <div class="icon-box bg-primary text-white shadow-sm">
-                            <i class="bi bi-file-earmark-medical"></i>
+            <div class="row g-4 justify-content-center">
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/construction-permit" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-primary text-white shadow-sm">
+                                <i class="bi bi-file-earmark-medical"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 1</span>
+                            <h5 class="fw-bold text-dark">Fasaxa Dhismaha</h5>
+                            <p class="text-muted small mb-0">Bixinta oggolaanshaha rasmiga ah ee mashaariicda dhismaha ee cusub.</p>
                         </div>
-                        <h5 class="fw-bold text-dark">Fasaxa Dhismaha</h5>
-                        <p class="text-muted small mb-0">Bixinta oggolaanshaha rasmiga ah ee mashaariicda dhismaha ee cusub.</p>
-                    </div>
+                    </a>
                 </div>
-                <div class="col-md-4">
-                    <div class="card h-100 service-card border-0 shadow-sm p-4">
-                        <div class="icon-box bg-success text-white shadow-sm">
-                            <i class="bi bi-building-check"></i>
+
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/developer-registration" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-mu-blue text-white shadow-sm" style="background-color: var(--mu-blue) !important;">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 2</span>
+                            <h5 class="fw-bold text-dark">Diiwaangelinta Shirkadaha</h5>
+                            <p class="text-muted small mb-0">Diiwaangelinta shirkadaha iyo dhismeyaasha wadaagga ah ee dhismaha fuliya.</p>
                         </div>
-                        <h5 class="fw-bold text-dark">Lahaanshaha Abaartada</h5>
-                        <p class="text-muted small mb-0">Soo saarista waraaqaha caddaynta lahaanshaha cutubyada guryaha (Units).</p>
-                    </div>
+                    </a>
                 </div>
-                <div class="col-md-4">
-                    <div class="card h-100 service-card border-0 shadow-sm p-4">
-                        <div class="icon-box bg-dark text-white shadow-sm">
-                            <i class="bi bi-arrow-left-right"></i>
+
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/business-license" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-info text-white shadow-sm">
+                                <i class="bi bi-card-checklist"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 3</span>
+                            <h5 class="fw-bold text-dark">Ruqsadda Ganacsiga</h5>
+                            <p class="text-muted small mb-0">Bixinta ruqsadda rasmiga ah ee looga ganacsado dhismooyinka wadaagga ah.</p>
                         </div>
-                        <h5 class="fw-bold text-dark">Kala Wareejinta</h5>
-                        <p class="text-muted small mb-0">Habraaca rasmiga ah ee hantida looga iibinayo ama loogu wareejinayo qof kale.</p>
-                    </div>
+                    </a>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/project-registration" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-success text-white shadow-sm" style="background-color: var(--mu-green) !important;">
+                                <i class="bi bi-diagram-3"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 4</span>
+                            <h5 class="fw-bold text-dark">Diiwaangelinta Mashruuca</h5>
+                            <p class="text-muted small mb-0">Diiwaangelinta rasmiga ah ee mashaariicda dhismo ee laga fulinayo degmada.</p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/ownership-certificate" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-primary text-white shadow-sm">
+                                <i class="bi bi-building-check"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 5</span>
+                            <h5 class="fw-bold text-dark">Lahaanshaha Abaartada</h5>
+                            <p class="text-muted small mb-0">Soo saarista waraaqaha caddaynta lahaanshaha cutubyada guryaha (Units).</p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/ownership-transfer" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-dark text-white shadow-sm">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 6</span>
+                            <h5 class="fw-bold text-dark">Kala Wareejinta</h5>
+                            <p class="text-muted small mb-0">Habraaca rasmiga ah ee hantida looga iibinayo ama loogu wareejinayo qof kale.</p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/building-management" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-secondary text-white shadow-sm">
+                                <i class="bi bi-gear-wide-connected"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 7</span>
+                            <h5 class="fw-bold text-dark">Maamulida Dhismaha</h5>
+                            <p class="text-muted small mb-0">Adeegyada la xiriira maamulida iyo dabagalka dhismooyinka wadaagga ah.</p>
+                        </div>
+                    </a>
                 </div>
             </div>
         </section>

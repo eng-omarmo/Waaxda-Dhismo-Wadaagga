@@ -17,8 +17,7 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.attempt');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.store');
+// Public self-registration disabled. Use admin panel to create users.
 
 Route::get('/email/verify', [AuthController::class, 'verifyNotice'])->middleware('auth')->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verify'])->middleware(['auth', 'signed'])->name('verification.verify');
@@ -41,4 +40,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+    Route::view('/projects', 'admin.pages.projects')->name('projects');
+    Route::view('/permits', 'admin.pages.permits')->name('permits');
+    Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
+    Route::view('/licensing', 'admin.pages.licensing')->name('licensing');
+    Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
+    Route::view('/transfers', 'admin.pages.transfers')->name('transfers');
+    Route::view('/inspections', 'admin.pages.inspections')->name('inspections');
+    Route::view('/audit', 'admin.pages.audit')->name('audit');
+    Route::view('/roles', 'admin.pages.roles')->name('roles');
+    Route::view('/reports', 'admin.pages.reports')->name('reports');
 });
