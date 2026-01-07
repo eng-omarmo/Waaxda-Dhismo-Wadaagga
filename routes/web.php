@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminUserController;
@@ -26,6 +25,8 @@ Route::post('/email/verification-notification', [AuthController::class, 'resendV
 Route::get('/admin', function () {
     return view('admin');
 });
+
+Route::view('/services/project-registration', 'services.project-registration')->name('services.project-registration');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

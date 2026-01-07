@@ -178,14 +178,14 @@
 
             <div class="row g-4 justify-content-center">
                 <div class="col-lg-4 col-md-6">
-                    <a href="/services/construction-permit" class="text-decoration-none h-100 d-block">
+                    <a href="/services/project-registration" class="text-decoration-none h-100 d-block">
                         <div class="card h-100 service-card border-0 shadow-sm p-4">
                             <div class="icon-box bg-primary text-white shadow-sm">
                                 <i class="bi bi-file-earmark-medical"></i>
                             </div>
                             <span class="badge bg-light text-primary mb-2 w-25">Step 1</span>
-                            <h5 class="fw-bold text-dark">Fasaxa Dhismaha</h5>
-                            <p class="text-muted small mb-0">Bixinta oggolaanshaha rasmiga ah ee mashaariicda dhismaha ee cusub.</p>
+                            <h5 class="fw-bold text-dark">Diiwaangelinta Mashruuca</h5>
+                            <p class="text-muted small mb-0">Bilow adiga oo diiwaangelinaya mashruuca si adeegyadu ugu xirmaan.</p>
                         </div>
                     </a>
                 </div>
