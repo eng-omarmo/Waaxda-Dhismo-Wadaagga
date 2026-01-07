@@ -215,19 +215,7 @@
                         </div>
                     </a>
                 </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/project-registration" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-success text-white shadow-sm" style="background-color: var(--mu-green) !important;">
-                                <i class="bi bi-diagram-3"></i>
-                            </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 4</span>
-                            <h5 class="fw-bold text-dark">Diiwaangelinta Mashruuca</h5>
-                            <p class="text-muted small mb-0">Diiwaangelinta rasmiga ah ee mashaariicda dhismo ee laga fulinayo degmada.</p>
-                        </div>
-                    </a>
-                </div>
+~
 
                 <div class="col-lg-4 col-md-6">
                     <a href="/services/ownership-certificate" class="text-decoration-none h-100 d-block">
