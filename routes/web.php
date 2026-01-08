@@ -51,7 +51,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
-    Route::view('/projects', 'admin.pages.projects')->name('projects');
+    Route::get('/projects', [\App\Http\Controllers\AdminProjectController::class, 'index'])->name('projects');
+    Route::post('/projects', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
     Route::view('/permits', 'admin.pages.permits')->name('permits');
     Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
     Route::view('/licensing', 'admin.pages.licensing')->name('licensing');
