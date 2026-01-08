@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\ServiceTrackingController;
 use App\Http\Controllers\OrganizationRegistrationController;
+use App\Http\Controllers\BusinessLicenseController;
 
 Route::get('/', function () {
     return view('landing');
@@ -34,7 +35,8 @@ Route::post('/services/project-registration', [ProjectRegistrationController::cl
 Route::get('/services/project-registration/thank-you/{id}', [ProjectRegistrationController::class, 'thankyou'])->name('services.project-registration.thankyou');
 Route::get('/services/developer-registration', [OrganizationRegistrationController::class, 'show'])->name('services.developer-registration');
 Route::post('/services/developer-registration', [OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('services.developer-registration.store');
-Route::view('/services/business-license', 'services.business-license')->name('services.business-license');
+Route::get('/services/business-license', [BusinessLicenseController::class, 'show'])->name('services.business-license');
+Route::post('/services/business-license', [BusinessLicenseController::class, 'store'])->middleware('throttle:15,1')->name('services.business-license.store');
 Route::view('/services/ownership-certificate', 'services.ownership-certificate')->name('services.ownership-certificate');
 Route::view('/services/ownership-transfer', 'services.ownership-transfer')->name('services.ownership-transfer');
 Route::get('/track', [ServiceTrackingController::class, 'show'])->name('track.show');
@@ -65,7 +67,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/organizations/{organization}/documents/{document}', [\App\Http\Controllers\AdminOrganizationController::class, 'downloadDoc'])->name('organizations.documents.download');
     Route::view('/permits', 'admin.pages.permits')->name('permits');
     Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
-    Route::view('/licensing', 'admin.pages.licensing')->name('licensing');
+    Route::get('/licensing', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'index'])->name('licensing.index');
+    Route::post('/licensing/{license}/approve', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'approve'])->name('licensing.approve');
+    Route::post('/licensing/{license}/reject', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'reject'])->name('licensing.reject');
+    Route::put('/licensing/{license}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'update'])->name('licensing.update');
+    Route::get('/licensing/{license}/documents/{docId}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'downloadDoc'])->name('licensing.documents.download');
     Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
     Route::view('/transfers', 'admin.pages.transfers')->name('transfers');
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');

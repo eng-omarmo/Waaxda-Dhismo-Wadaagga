@@ -31,26 +31,69 @@
         <div class="col-lg-8">
           <div class="card">
             <div class="card-body">
-              <form>
+              @if (session('status'))
+                <div class="alert alert-success" role="alert">{{ session('status') }}</div>
+              @endif
+              <form method="POST" action="{{ route('services.business-license.store') }}" enctype="multipart/form-data" novalidate>
+                @csrf
                 <div class="mb-3">
                   <label class="form-label">ID (UUID)</label>
                   <input type="text" class="form-control" value="Auto-generated on submission" disabled>
                 </div>
                 <div class="mb-3">
+                  <label class="form-label">Company Name</label>
+                  <input name="company_name" type="text" class="form-control" placeholder="Company or business name" required>
+                </div>
+                <div class="mb-3">
                   <label class="form-label">Project ID (UUID)</label>
-                  <input type="text" class="form-control" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required pattern="^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$">
+                  <input name="project_id" type="text" class="form-control" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="^[0-9a-fA-F\\-]{36}$">
                   <div class="form-text">Reference an existing project UUID.</div>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">License Type</label>
-                  <select class="form-select" required>
+                  <select name="license_type" class="form-select" required>
                     <option value="">Select type</option>
                     <option value="Rental">Rental</option>
                     <option value="Commercial">Commercial</option>
                   </select>
                 </div>
+                <div class="mb-3">
+                  <label class="form-label">Upload Documents</label>
+                  <input name="documents[]" type="file" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png">
+                  <div class="form-text">Allowed types: PDF, JPG, PNG. Max size per file: 5MB.</div>
+                </div>
+                <h6 class="mt-4 mb-2">Registrant Contact</h6>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input name="registrant_name" type="text" class="form-control" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input name="registrant_email" type="email" class="form-control" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input name="registrant_phone" type="tel" class="form-control" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Status</label>
+                  <div>
+                    <span class="badge bg-warning"><i class="bi bi-hourglass-split me-1"></i>Pending upon submission</span>
+                  </div>
+                </div>
                 <button type="submit" class="btn btn-primary">Submit Application</button>
               </form>
+              @if ($errors->any())
+                <div class="alert alert-danger mt-3" role="alert">
+                  <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                      <li>{{ $error }}</li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endif
             </div>
           </div>
         </div>
