@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Organization;
 use App\Models\OrganizationChange;
+use App\Models\OrganizationDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class AdminOrganizationController extends Controller
@@ -33,6 +35,23 @@ class AdminOrganizationController extends Controller
         $organizations = $query->paginate(10)->withQueryString();
         $statuses = ['pending', 'approved', 'rejected'];
         return view('admin.pages.organizations', compact('organizations', 'statuses', 'sort', 'direction'));
+    }
+
+    public function show(Organization $organization)
+    {
+        $documents = OrganizationDocument::where('organization_id', $organization->id)->latest()->get();
+        return view('admin.pages.organization-show', compact('organization', 'documents'));
+    }
+
+    public function downloadDoc(Organization $organization, OrganizationDocument $document)
+    {
+        if ($document->organization_id !== $organization->id) {
+            abort(404);
+        }
+        if (!Storage::disk('public')->exists($document->file_path)) {
+            abort(404);
+        }
+        return Storage::disk('public')->download($document->file_path, $document->file_name);
     }
 
     public function store(Request $request)
@@ -121,4 +140,3 @@ class AdminOrganizationController extends Controller
         return redirect()->route('admin.organizations.index')->with('status', 'Organization rejected');
     }
 }
-

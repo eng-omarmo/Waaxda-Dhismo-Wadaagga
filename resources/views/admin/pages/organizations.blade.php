@@ -88,6 +88,7 @@
                 <div>{{ $o->contact_email }} · {{ $o->contact_phone }}</div>
               </td>
               <td class="text-end">
+                <a class="btn btn-sm btn-primary" href="{{ route('admin.organizations.show', $o) }}">View</a>
                 <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#edit-{{ $o->id }}">Edit</button>
                 <form method="POST" action="{{ route('admin.organizations.approve', $o) }}" class="d-inline">
                   @csrf
