@@ -32,7 +32,7 @@
                 </div>
                 <div class="sidebar-menu">
                     <ul class="menu">
-                        
+
 
                         <li class="sidebar-item {{ request()->is('dashboard') ? 'active' : '' }}">
                             <a href="{{ url('/dashboard') }}" class="sidebar-link">
@@ -114,6 +114,17 @@
                                 <li class="submenu-item"><a href="{{ url('/admin/transfers') }}">Transfer Requests – Requested / Approved / Completed</a></li>
                                 <li class="submenu-item"><a href="{{ url('/admin/transfers') }}#approve">Approve Transfers</a></li>
                                 <li class="submenu-item"><a href="{{ url('/admin/transfers') }}#history">Transfer History</a></li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub {{ request()->is('admin/organizations') ? 'active' : '' }}">
+                            <a href="{{ url('/admin/organizations') }}" class="sidebar-link">
+                                <i class="bi bi-building-gear"></i>
+                                <span>Organizations</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item"><a href="{{ url('/admin/organizations') }}">All Organizations – Pending / Approved / Rejected</a></li>
+                                <li class="submenu-item"><a href="{{ url('/admin/organizations') }}#create">Create Organization</a></li>
                             </ul>
                         </li>
 

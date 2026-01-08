@@ -56,6 +56,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/projects', [\App\Http\Controllers\AdminProjectController::class, 'index'])->name('projects');
     Route::post('/projects', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
     Route::post('/projects/{project}/assign-developer', [\App\Http\Controllers\AdminProjectController::class, 'assignDeveloper'])->name('projects.assignDeveloper');
+    Route::get('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'index'])->name('organizations.index');
+    Route::post('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'store'])->name('organizations.store');
+    Route::put('/organizations/{organization}', [\App\Http\Controllers\AdminOrganizationController::class, 'update'])->name('organizations.update');
+    Route::post('/organizations/{organization}/approve', [\App\Http\Controllers\AdminOrganizationController::class, 'approve'])->name('organizations.approve');
+    Route::post('/organizations/{organization}/reject', [\App\Http\Controllers\AdminOrganizationController::class, 'reject'])->name('organizations.reject');
     Route::view('/permits', 'admin.pages.permits')->name('permits');
     Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
     Route::view('/licensing', 'admin.pages.licensing')->name('licensing');
