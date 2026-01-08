@@ -24,25 +24,7 @@
   @stack('page-styles')
 </head>
 <body>
-  <div class="top-brand-bar"></div>
-  <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url('/') }}">
-        <img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo" height="50" class="me-3">
-        <div class="lh-1 border-start ps-3">
-          <span class="fs-6 d-block text-muted fw-bold text-uppercase" style="font-size: 0.7rem !important;">Dowladda Hoose ee Xamar</span>
-          <span class="fs-5 text-dark fw-extrabold">Waaxda Dhismo Wadaagga</span>
-        </div>
-      </a>
-      <div class="collapse navbar-collapse" id="mainNavbar">
-        <ul class="navbar-nav ms-auto align-items-center">
-          <li class="nav-item"><a class="nav-link px-3 fw-bold" href="{{ url('/#services') }}">Adeegyada</a></li>
-          <li class="nav-item"><a class="nav-link px-3 fw-bold" href="{{ url('/#department-info') }}">Habraaca</a></li>
-          <li class="nav-item ms-lg-3"><a class="btn btn-primary fw-bold" href="/login">Gali System-ka</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+  <x-public-navbar />
 
   <header class="hero">
     <div class="container">
@@ -91,14 +73,7 @@
                   <label class="form-label">Developer (optional)</label>
                   <input type="text" class="form-control" placeholder="Leave blank; assign later by an officer">
                 </div>
-                <div class="mb-3">
-                  <label class="form-label">Status</label>
-                  <select class="form-select">
-                    <option selected>Draft</option>
-                    <option>Submitted</option>
-                    <option disabled>Approved</option>
-                  </select>
-                </div>
+
                 <div class="mb-3">
                   <label class="form-label">Created At</label>
                   <input type="text" class="form-control" value="{{ date('Y-m-d') }}" disabled>

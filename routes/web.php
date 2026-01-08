@@ -30,6 +30,7 @@ Route::view('/services/project-registration', 'services.project-registration')->
 Route::view('/services/developer-registration', 'services.developer-registration')->name('services.developer-registration');
 Route::view('/services/business-license', 'services.business-license')->name('services.business-license');
 Route::view('/services/ownership-certificate', 'services.ownership-certificate')->name('services.ownership-certificate');
+Route::view('/services/ownership-transfer', 'services.ownership-transfer')->name('services.ownership-transfer');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

@@ -3,64 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Mazer Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <title>Login - IPAMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/pages/auth.css') }}">
+    <style>
+        body {
+            background-color: #f4f7f9;
+            font-family: 'Nunito', sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+        }
+        .form-control {
+            border-color: #e2e8f0;
+            padding: 0.75rem;
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #002d80;
+        }
+        .btn-primary {
+            background-color: #002d80;
+            border: none;
+            padding: 0.75rem;
+        }
+    </style>
 </head>
 <body>
-<div id="auth">
-    <div class="row h-100">
-        <div class="col-lg-5 col-12">
-            <div id="auth-left">
-                <div class="auth-logo">
-                    <a href="{{ url('/') }}"><img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo"></a>
-                </div>
-                <h1 class="auth-title">Log in.</h1>
-                <p class="auth-subtitle mb-5">Log in with your data that you entered during registration.</p>
-                <form method="POST" action="{{ route('login.attempt') }}">
-                    @csrf
-                    <div class="form-group position-relative has-icon-left mb-4">
-                        <input name="email" type="email" class="form-control form-control-xl" placeholder="Email" required>
-                        <div class="form-control-icon">
-                            <i class="bi bi-person"></i>
-                        </div>
-                    </div>
-                    <div class="form-group position-relative has-icon-left mb-4">
-                        <input name="password" type="password" class="form-control form-control-xl" placeholder="Password" required>
-                        <div class="form-control-icon">
-                            <i class="bi bi-shield-lock"></i>
-                        </div>
-                    </div>
-                    <div class="form-check form-check-lg d-flex align-items-end">
-                        <input name="remember" class="form-check-input me-2" type="checkbox" value="1" id="flexCheckDefault">
-                        <label class="form-check-label text-gray-600" for="flexCheckDefault">
-                            Keep me logged in
-                        </label>
-                    </div>
-                    @if ($errors->any())
-                        <div class="alert alert-danger mt-3">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-                    <button class="btn btn-primary btn-block btn-lg shadow-lg mt-5" type="submit">Log in</button>
-                </form>
-                <div class="text-center mt-5 text-lg fs-4">
-                    <p class="text-gray-600">Don't have an account? Contact an administrator.</p>
-                    <p><a class="font-bold" href="#">Forgot password?</a>.</p>
-                </div>
+
+<div class="login-card shadow-sm">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold text-dark mb-1">IPAMS</h2>
+        <p class="text-muted small">Enter credentials to access portal</p>
+    </div>
+
+    <form method="POST" action="{{ route('login.attempt') }}">
+        @csrf
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold">Email</label>
+            <input name="email" type="email" class="form-control" placeholder="email@example.com" required autofocus>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold">Password</label>
+            <input name="password" type="password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                <label class="form-check-label small text-muted" for="remember">Remember me</label>
             </div>
+            <a href="#" class="small text-decoration-none">Forgot?</a>
         </div>
-        <div class="col-lg-7 d-none d-lg-block">
-            <div id="auth-right"></div>
-        </div>
+
+        @if ($errors->any())
+            <div class="alert alert-danger p-2 small">
+                @foreach ($errors->all() as $error)
+                    <div class="mb-0">{{ $error }}</div>
+                @endforeach
+            </div>
+        @endif
+
+        <button type="submit" class="btn btn-primary w-100 fw-bold">Sign In</button>
+    </form>
+
+    <div class="mt-4 text-center">
+        <p class="small text-muted mb-0">Unauthorized access is prohibited.</p>
     </div>
 </div>
+
 </body>
 </html>

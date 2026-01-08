@@ -223,7 +223,7 @@
                             <div class="icon-box bg-primary text-white shadow-sm">
                                 <i class="bi bi-building-check"></i>
                             </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 5</span>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 4</span>
                             <h5 class="fw-bold text-dark">Lahaanshaha Abaartada</h5>
                             <p class="text-muted small mb-0">Soo saarista waraaqaha caddaynta lahaanshaha cutubyada guryaha (Units).</p>
                         </div>
@@ -236,25 +236,14 @@
                             <div class="icon-box bg-dark text-white shadow-sm">
                                 <i class="bi bi-arrow-left-right"></i>
                             </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 6</span>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 5</span>
                             <h5 class="fw-bold text-dark">Kala Wareejinta</h5>
                             <p class="text-muted small mb-0">Habraaca rasmiga ah ee hantida looga iibinayo ama loogu wareejinayo qof kale.</p>
                         </div>
                     </a>
                 </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/building-management" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-secondary text-white shadow-sm">
-                                <i class="bi bi-gear-wide-connected"></i>
-                            </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 7</span>
-                            <h5 class="fw-bold text-dark">Maamulida Dhismaha</h5>
-                            <p class="text-muted small mb-0">Adeegyada la xiriira maamulida iyo dabagalka dhismooyinka wadaagga ah.</p>
-                        </div>
-                    </a>
-                </div>
+
             </div>
         </section>
 
