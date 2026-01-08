@@ -48,6 +48,52 @@
             overflow: hidden;
         }
 
+        /* Tracking Section Styling */
+        .track-wrapper {
+            margin-top: -50px;
+            /* Pulls it up to overlap the hero slightly */
+            position: relative;
+            z-index: 10;
+        }
+
+        .track-card {
+            background: #ffffff;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .track-input-group {
+            background: #f8f9fc;
+            border: 2px solid #edeff5;
+            border-radius: 10px;
+            padding: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .track-input-group:focus-within {
+            border-color: var(--mu-blue);
+            background: #fff;
+        }
+
+        .track-input-group input {
+            background: transparent;
+            border: none;
+            font-weight: 700;
+            color: var(--mu-blue-dark);
+        }
+
+        .track-input-group input:focus {
+            box-shadow: none;
+        }
+
+        .track-btn {
+            border-radius: 8px !important;
+            padding: 10px 25px;
+            font-weight: 700;
+        }
+
         .hero-gradient::after {
             content: "";
             position: absolute;
@@ -144,7 +190,7 @@
             <div class="collapse navbar-collapse" id="mainNavbar">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link px-3 fw-bold" href="#services">Adeegyada</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 fw-bold" href="#department-info">Habraaca</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 fw-bold" href="{{ route('track.show') }}">Habraaca</a></li>
                     <li class="nav-item ms-lg-3"><a class="btn btn-primary fw-bold" href="/login">Gali System-ka</a></li>
                 </ul>
             </div>
@@ -168,6 +214,8 @@
     </header>
 
     <main>
+
+
         <section id="services" class="container py-5 mt-4">
             <div class="text-center mb-5">
                 <h2 class="section-heading">Adeegyada aan Bixino</h2>
@@ -215,7 +263,7 @@
                         </div>
                     </a>
                 </div>
-~
+                ~
 
                 <div class="col-lg-4 col-md-6">
                     <a href="/services/ownership-certificate" class="text-decoration-none h-100 d-block">

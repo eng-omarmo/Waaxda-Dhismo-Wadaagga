@@ -40,19 +40,20 @@
           <div class="card">
             <div class="card-body">
               <h5 class="mb-4">Your Details</h5>
-              <form>
+              <form method="POST" action="{{ route('services.project-registration.store') }}">
+                @csrf
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Full Name</label>
-                    <input type="text" class="form-control" placeholder="e.g., Mohamed Ali" required>
+                    <input name="registrant_name" type="text" class="form-control" placeholder="e.g., Mohamed Ali" required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Phone</label>
-                    <input type="tel" class="form-control" placeholder="061XXXXXXX" required>
+                    <input name="registrant_phone" type="tel" class="form-control" placeholder="061XXXXXXX" required>
                   </div>
                   <div class="col-md-12 mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" class="form-control" placeholder="you@example.com" required>
+                    <input name="registrant_email" type="email" class="form-control" placeholder="you@example.com" required>
                   </div>
                 </div>
 
@@ -63,11 +64,11 @@
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Project Name</label>
-                  <input type="text" class="form-control" placeholder="e.g., Daru Salaam Apartments Phase II" required>
+                  <input name="project_name" type="text" class="form-control" placeholder="e.g., Daru Salaam Apartments Phase II" required>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Location</label>
-                  <input type="text" class="form-control" placeholder="District, neighborhood or map reference" required>
+                  <input name="location_text" type="text" class="form-control" placeholder="District, neighborhood or map reference" required>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Developer (optional)</label>
@@ -78,9 +79,10 @@
                   <label class="form-label">Created At</label>
                   <input type="text" class="form-control" value="{{ date('Y-m-d') }}" disabled>
                 </div>
+                <input type="hidden" name="status" id="statusField" value="Draft">
                 <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-primary">Save Draft</button>
-                  <button type="button" class="btn btn-success">Submit Registration</button>
+                  <button type="submit" class="btn btn-primary">Save Draft</button>
+                  <button type="button" class="btn btn-success" onclick="document.getElementById('statusField').value='Submitted'; this.closest('form').submit();">Submit Registration</button>
                 </div>
               </form>
             </div>
