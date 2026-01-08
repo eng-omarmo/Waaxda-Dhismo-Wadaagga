@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\ServiceTrackingController;
+use App\Http\Controllers\OrganizationRegistrationController;
 
 Route::get('/', function () {
     return view('landing');
@@ -31,7 +32,8 @@ Route::get('/admin', function () {
 Route::get('/services/project-registration', [ProjectRegistrationController::class, 'show'])->name('services.project-registration');
 Route::post('/services/project-registration', [ProjectRegistrationController::class, 'store'])->name('services.project-registration.store');
 Route::get('/services/project-registration/thank-you/{id}', [ProjectRegistrationController::class, 'thankyou'])->name('services.project-registration.thankyou');
-Route::view('/services/developer-registration', 'services.developer-registration')->name('services.developer-registration');
+Route::get('/services/developer-registration', [OrganizationRegistrationController::class, 'show'])->name('services.developer-registration');
+Route::post('/services/developer-registration', [OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('services.developer-registration.store');
 Route::view('/services/business-license', 'services.business-license')->name('services.business-license');
 Route::view('/services/ownership-certificate', 'services.ownership-certificate')->name('services.ownership-certificate');
 Route::view('/services/ownership-transfer', 'services.ownership-transfer')->name('services.ownership-transfer');
@@ -53,6 +55,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     Route::get('/projects', [\App\Http\Controllers\AdminProjectController::class, 'index'])->name('projects');
     Route::post('/projects', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
+    Route::post('/projects/{project}/assign-developer', [\App\Http\Controllers\AdminProjectController::class, 'assignDeveloper'])->name('projects.assignDeveloper');
     Route::view('/permits', 'admin.pages.permits')->name('permits');
     Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
     Route::view('/licensing', 'admin.pages.licensing')->name('licensing');

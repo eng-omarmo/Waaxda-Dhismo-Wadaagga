@@ -93,10 +93,39 @@
               <td>
                 <div class="small">
                   <div>Registrant: {{ $p->registrant_name }} · {{ $p->registrant_email }}</div>
-                  <div>Developer: {{ $p->developer?->first_name ? ($p->developer->first_name.' '.$p->developer->last_name) : 'Unassigned' }}</div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span>Developer: {{ $p->developer?->name ?? 'Unassigned' }}</span>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignDev-{{ $p->id }}" aria-controls="assignDev-{{ $p->id }}">Assign</button>
+                  </div>
                 </div>
               </td>
             </tr>
+            <div class="modal fade" id="assignDev-{{ $p->id }}" tabindex="-1" aria-labelledby="assignDevLabel-{{ $p->id }}" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 id="assignDevLabel-{{ $p->id }}" class="modal-title">Assign Developer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <form method="POST" action="{{ route('admin.projects.assignDeveloper', $p) }}">
+                    @csrf
+                    <div class="modal-body">
+                      <label class="form-label">Organization</label>
+                      <select name="developer_id" class="form-select">
+                        <option value="">Unassigned</option>
+                        @foreach ($developers as $d)
+                          <option value="{{ $d->id }}" @selected($p->developer_id===$d->id)>{{ $d->name }} ({{ $d->type }})</option>
+                        @endforeach
+                      </select>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
           @empty
             <tr>
               <td colspan="5" class="text-center text-muted">No projects found.</td>
@@ -135,7 +164,7 @@
               <select name="developer_id" class="form-select">
                 <option value="">Unassigned</option>
                 @foreach ($developers as $d)
-                  <option value="{{ $d->id }}">{{ $d->first_name }} {{ $d->last_name }} ({{ $d->email }})</option>
+                  <option value="{{ $d->id }}">{{ $d->name }} ({{ $d->type }})</option>
                 @endforeach
               </select>
             </div>

@@ -31,29 +31,33 @@
         <div class="col-lg-8">
           <div class="card">
             <div class="card-body">
-              <form enctype="multipart/form-data">
+              @if (session('status'))
+                <div class="alert alert-success" role="alert">{{ session('status') }}</div>
+              @endif
+              <form method="POST" action="{{ route('services.developer-registration.store') }}" enctype="multipart/form-data" novalidate>
+                @csrf
                 <h5 class="mb-3">Organization Information</h5>
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Organization Name</label>
-                    <input type="text" class="form-control" placeholder="e.g., Daru Salaam Developers Ltd." required>
+                    <input name="name" type="text" class="form-control" placeholder="e.g., Daru Salaam Developers Ltd." required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Registration Number</label>
-                    <input type="text" class="form-control" placeholder="e.g., REG-12345">
+                    <input name="registration_number" type="text" class="form-control" placeholder="e.g., REG-12345">
                   </div>
                   <div class="col-md-12 mb-3">
                     <label class="form-label">Address</label>
-                    <input type="text" class="form-control" placeholder="Street, District, City" required>
+                    <input name="address" type="text" class="form-control" placeholder="Street, District, City" required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Organization Type</label>
-                    <select class="form-select" required>
+                    <select name="type" class="form-select" required>
                       <option value="">Select type</option>
-                      <option>Developer</option>
-                      <option>Contractor</option>
-                      <option>Consultant</option>
-                      <option>Other</option>
+                      <option value="Developer">Developer</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Consultant">Consultant</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
                   <div class="col-md-6 mb-3">
@@ -65,35 +69,44 @@
                 <h5 class="mt-4 mb-3">Documents</h5>
                 <div class="mb-3">
                   <label class="form-label">Upload Documents</label>
-                  <input type="file" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                  <input name="documents[]" type="file" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
                 </div>
 
                 <h5 class="mt-4 mb-3">Owner / Contact</h5>
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Full Name</label>
-                    <input type="text" class="form-control" placeholder="e.g., Mohamed Ali" required>
+                    <input name="contact_full_name" type="text" class="form-control" placeholder="e.g., Mohamed Ali" required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Role</label>
-                    <input type="text" class="form-control" placeholder="e.g., Owner / Director" required>
+                    <input name="contact_role" type="text" class="form-control" placeholder="e.g., Owner / Director" required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Phone</label>
-                    <input type="tel" class="form-control" placeholder="061XXXXXXX" required>
+                    <input name="contact_phone" type="tel" class="form-control" placeholder="061XXXXXXX" required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" class="form-control" placeholder="you@example.com" required>
+                    <input name="contact_email" type="email" class="form-control" placeholder="you@example.com" required>
                   </div>
                 </div>
 
                 <div class="form-check mt-3 mb-4">
-                  <input class="form-check-input" type="checkbox" value="" id="termsCheck" required>
+                  <input name="terms" class="form-check-input" type="checkbox" value="1" id="termsCheck" required>
                   <label class="form-check-label" for="termsCheck">I accept the terms and conditions.</label>
                 </div>
                 <button id="submitBtn" type="submit" class="btn btn-primary">Submit Registration</button>
               </form>
+              @if ($errors->any())
+                <div class="alert alert-danger mt-3" role="alert">
+                  <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                      <li>{{ $error }}</li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endif
             </div>
           </div>
         </div>

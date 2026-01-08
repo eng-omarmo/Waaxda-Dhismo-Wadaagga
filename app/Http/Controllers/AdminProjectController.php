@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Models\User;
+use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -30,7 +30,7 @@ class AdminProjectController extends Controller
         }
 
         $projects = $query->paginate(10)->withQueryString();
-        $developers = User::orderBy('first_name')->orderBy('last_name')->get();
+        $developers = Organization::orderBy('name')->get();
         $statuses = ['Draft', 'Submitted', 'Approved'];
 
         return view('admin.pages.projects', compact('projects', 'developers', 'statuses', 'sort', 'direction'));
@@ -41,7 +41,7 @@ class AdminProjectController extends Controller
         $request->validate([
             'project_name' => ['required', 'string', 'max:255'],
             'location_text' => ['required', 'string', 'max:255'],
-            'developer_id' => ['nullable', 'integer', 'exists:users,id'],
+            'developer_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'status' => ['required', Rule::in(['Draft', 'Submitted', 'Approved'])],
         ]);
 
@@ -59,5 +59,16 @@ class AdminProjectController extends Controller
 
         return redirect()->route('admin.projects')->with('status', 'Project registered successfully');
     }
-}
 
+    public function assignDeveloper(Request $request, Project $project)
+    {
+        $request->validate([
+            'developer_id' => ['nullable', 'integer', 'exists:organizations,id'],
+        ]);
+
+        $project->developer_id = $request->developer_id ?: null;
+        $project->save();
+
+        return redirect()->route('admin.projects')->with('status', 'Developer assignment updated');
+    }
+}

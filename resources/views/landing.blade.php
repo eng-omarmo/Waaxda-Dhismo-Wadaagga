@@ -322,7 +322,15 @@
                             <div class="d-flex mb-5">
                                 <div class="fs-3 me-3"><i class="bi bi-shield-lock-fill text-info"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0">Official Email</h6>
+                                    <h6 class="fw-bold mb-0"> Phone Number</h6>
+                                    <span class="small opacity-75">+252 612 345 678</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex mb-5">
+                                <div class="fs-3 me-3"><i class="bi bi-shield-lock-fill text-info"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-0"> Email</h6>
                                     <span class="small opacity-75">info.property@xamar.so</span>
                                 </div>
                             </div>
