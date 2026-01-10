@@ -12,7 +12,7 @@ class Apartment extends Model
 
     protected $fillable = [
         'name',
-        'address_street',
+        'address_city',
         'contact_name',
         'contact_phone',
         'contact_email',

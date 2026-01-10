@@ -29,10 +29,7 @@ class ApartmentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'address_street' => 'required|string|max:255',
             'address_city' => 'required|string|max:255',
-            'address_state' => 'required|string|max:255',
-            'address_zip' => 'required|string|max:255',
             'contact_name' => 'required|string|max:255',
             'contact_phone' => 'required|string|max:50',
             'contact_email' => 'required|email|max:255',
@@ -49,7 +46,7 @@ class ApartmentController extends Controller
         }
 
         $apartment = Apartment::create($request->only([
-            'name', 'address_street', 'address_city', 'address_state', 'address_zip',
+            'name', 'address_city',
             'contact_name', 'contact_phone', 'contact_email', 'notes'
         ]));
 
@@ -79,9 +76,6 @@ class ApartmentController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address_street' => 'required|string|max:255',
-            'address_city' => 'required|string|max:255',
-            'address_state' => 'required|string|max:255',
-            'address_zip' => 'required|string|max:255',
             'contact_name' => 'required|string|max:255',
             'contact_phone' => 'required|string|max:50',
             'contact_email' => 'required|email|max:255',
@@ -98,7 +92,7 @@ class ApartmentController extends Controller
         }
 
         $apartment->update($request->only([
-            'name', 'address_street', 'address_city', 'address_state', 'address_zip',
+            'name', 'address_street',
             'contact_name', 'contact_phone', 'contact_email', 'notes'
         ]));
 

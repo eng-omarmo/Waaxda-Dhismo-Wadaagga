@@ -290,7 +290,19 @@
                         </div>
                     </a>
                 </div>
-
+                <div class="col-lg-4 col-md-6">
+                    <a href="/services/ownership-transfer" class="text-decoration-none h-100 d-block">
+                        <div class="card h-100 service-card border-0 shadow-sm p-4">
+                            <div class="icon-box bg-dark text-white shadow-sm">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </div>
+                            <span class="badge bg-light text-primary mb-2 w-25">Step 6</span>
+                            <h5 class="fw-bold text-dark">Fasaxa Dhismaha (Construction Permit)</h5>
+                            <p class="text-muted small mb-0">This service issues official permission to start constructing an apartment building.
+                            </p>
+                        </div>
+                    </a>
+                </div>
 
             </div>
         </section>

@@ -24,10 +24,10 @@
                 </div>
                 <div class="card-body pt-4">
                     @if (session('status'))
-                        <div class="alert alert-light-success color-success d-flex align-items-center mb-4" role="alert">
-                            <i class="bi bi-check-circle-fill me-2"></i>
-                            <div>{{ session('status') }}</div>
-                        </div>
+                    <div class="alert alert-light-success color-success d-flex align-items-center mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <div>{{ session('status') }}</div>
+                    </div>
                     @endif
 
                     <form method="POST" action="{{ route('services.business-license.store') }}" enctype="multipart/form-data">
@@ -94,13 +94,13 @@
                     </form>
 
                     @if ($errors->any())
-                        <div class="alert alert-light-danger mt-4 border-0 shadow-sm">
-                            <ul class="mb-0 small fw-bold">
-                                @foreach ($errors->all() as $error)
-                                    <li><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                    <div class="alert alert-light-danger mt-4 border-0 shadow-sm">
+                        <ul class="mb-0 small fw-bold">
+                            @foreach ($errors->all() as $error)
+                            <li><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
                     @endif
                 </div>
             </div>

@@ -70,16 +70,16 @@
                             </ul>
                         </li>
 
-                        <li class="sidebar-item has-sub {{ request()->is('admin/buildings') ? 'active' : '' }}">
-                            <a href="{{ url('/admin/buildings') }}" class="sidebar-link">
-                                <i class="bi bi-building"></i>
-                                <span>Apartments</span>
-                            </a>
-                            <ul class="submenu">
-                                <li class="submenu-item"><a href="{{ url('/admin/buildings') }}">Buildings – Add / Edit</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/buildings') }}#units">Units – Assign / Transfer / Status</a></li>
-                            </ul>
-                        </li>
+                        <li class="sidebar-item has-sub {{ request()->is('admin/apartments*') || request()->is('admin/buildings*') ? 'active' : '' }}">
+                                <a href="{{ route('admin.apartments.index') }}" class="sidebar-link">
+                                    <i class="bi bi-building"></i>
+                                    <span>Apartments</span>
+                                </a>
+                                <ul class="submenu">
+                                    <li class="submenu-item"><a href="{{ route('admin.apartments.index') }}">Apartment List</a></li>
+                                    <li class="submenu-item"><a href="{{ route('admin.apartments.create') }}">Add New Apartment</a></li>
+                                </ul>
+                            </li>
 
                         <li class="sidebar-item has-sub {{ request()->is('admin/licensing') ? 'active' : '' }}">
                             <a href="{{ url('/admin/licensing') }}" class="sidebar-link">

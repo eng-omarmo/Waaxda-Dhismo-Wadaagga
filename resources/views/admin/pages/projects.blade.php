@@ -6,12 +6,7 @@
 <div class="alert alert-success" role="alert">{{ session('status') }}</div>
 @endif
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">All Projects</h5>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal" aria-controls="registerModal" aria-expanded="false">
-        <i class="bi bi-plus-circle me-1"></i> Register New Project
-    </button>
-</div>
+
 
 <div class="card mb-3">
     <div class="card-body">
@@ -141,59 +136,5 @@
     </div>
 </div>
 
-<div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Register New Project</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST" action="{{ route('admin.projects.store') }}" novalidate>
-                @csrf
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Project name</label>
-                            <input name="project_name" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Location</label>
-                            <input name="location_text" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Assign developer (optional)</label>
-                            <select name="developer_id" class="form-select">
-                                <option value="">Unassigned</option>
-                                @foreach ($developers as $d)
-                                <option value="{{ $d->id }}">{{ $d->name }} ({{ $d->type }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select" required>
-                                @foreach ($statuses as $s)
-                                <option value="{{ $s }}">{{ $s }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    @if ($errors->any())
-                    <div class="alert alert-danger mt-3" role="alert">
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                    @endif
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Register</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+
 @endsection

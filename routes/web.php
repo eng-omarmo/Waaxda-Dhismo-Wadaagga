@@ -68,7 +68,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/organizations/{organization}/reject', [\App\Http\Controllers\AdminOrganizationController::class, 'reject'])->name('organizations.reject');
     Route::get('/organizations/{organization}/documents/{document}', [\App\Http\Controllers\AdminOrganizationController::class, 'downloadDoc'])->name('organizations.documents.download');
     Route::view('/permits', 'admin.pages.permits')->name('permits');
-    Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
+
+    // Apartment (Building) Management
+    Route::get('/buildings', fn() => redirect()->route('admin.apartments.index'))->name('buildings');
+    Route::resource('apartments', \App\Http\Controllers\ApartmentController::class);
+
     Route::get('/licensing', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'index'])->name('licensing.index');
     Route::post('/licensing/{license}/approve', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'approve'])->name('licensing.approve');
     Route::post('/licensing/{license}/reject', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'reject'])->name('licensing.reject');
