@@ -67,7 +67,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/organizations/{organization}/approve', [\App\Http\Controllers\AdminOrganizationController::class, 'approve'])->name('organizations.approve');
     Route::post('/organizations/{organization}/reject', [\App\Http\Controllers\AdminOrganizationController::class, 'reject'])->name('organizations.reject');
     Route::get('/organizations/{organization}/documents/{document}', [\App\Http\Controllers\AdminOrganizationController::class, 'downloadDoc'])->name('organizations.documents.download');
-    Route::view('/permits', 'admin.pages.permits')->name('permits');
+    // Construction Permits
+    Route::resource('permits', \App\Http\Controllers\ApartmentConstructionPermitController::class)->names('permits');
+    Route::get('permits/{permit}/download', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'downloadDrawing'])->name('permits.download');
 
     // Apartment (Building) Management
     Route::get('/buildings', fn() => redirect()->route('admin.apartments.index'))->name('buildings');
@@ -83,6 +85,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
     Route::get('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'index'])->name('apartment-transfers.index');
     Route::get('/transfers/create', [\App\Http\Controllers\ApartmentTransferController::class, 'create'])->name('apartment-transfers.create');
+    Route::post('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'store'])->name('apartment-transfers.store');
 
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');
     Route::view('/audit', 'admin.pages.audit')->name('audit');
