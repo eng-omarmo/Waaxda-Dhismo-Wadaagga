@@ -36,6 +36,12 @@ class AdminProjectController extends Controller
         return view('admin.pages.projects', compact('projects', 'developers', 'statuses', 'sort', 'direction'));
     }
 
+
+    public function create()
+    {
+        return view('admin.pages.new-project');
+    }
+
     public function store(Request $request)
     {
         $request->validate([

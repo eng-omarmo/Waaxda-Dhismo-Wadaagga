@@ -53,7 +53,7 @@
                             </a>
                             <ul class="submenu">
                                 <li class="submenu-item"><a href="{{ url('/admin/projects') }}">All Projects – List &amp; status</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/projects') }}#register">Register New Project</a></li>
+                                <li class="submenu-item"><a href="{{ url('/admin/projects/create') }}#register">Register New Project</a></li>
                                 <li class="submenu-item"><a href="{{ url('/admin/projects') }}#details">Project Details → Buildings → Units</a></li>
                             </ul>
                         </li>
@@ -73,7 +73,7 @@
                         <li class="sidebar-item has-sub {{ request()->is('admin/buildings') ? 'active' : '' }}">
                             <a href="{{ url('/admin/buildings') }}" class="sidebar-link">
                                 <i class="bi bi-building"></i>
-                                <span>Buildings &amp; Apartments</span>
+                                <span>Apartments</span>
                             </a>
                             <ul class="submenu">
                                 <li class="submenu-item"><a href="{{ url('/admin/buildings') }}">Buildings – Add / Edit</a></li>
@@ -88,7 +88,7 @@
                             </a>
                             <ul class="submenu">
                                 <li class="submenu-item"><a href="{{ url('/admin/licensing') }}">Licenses – Active / Expired / Revoked</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/licensing') }}#issue">Issue License</a></li>
+                                <li class="submenu-item"><a href="{{ url('/admin/new-business-license') }}">Issue License</a></li>
                                 <li class="submenu-item"><a href="{{ url('/admin/licensing') }}#history">License History</a></li>
                             </ul>
                         </li>

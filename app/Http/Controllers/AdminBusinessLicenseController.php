@@ -36,6 +36,12 @@ class AdminBusinessLicenseController extends Controller
         return redirect()->route('admin.licensing.index')->with('status', 'License approved');
     }
 
+    public function displayIssuePage()
+    {
+
+        return view('admin.pages.new-business-licence');
+    }
+
     public function reject(Request $request, BusinessLicense $license)
     {
         $license->status = 'rejected';
@@ -68,4 +74,3 @@ class AdminBusinessLicenseController extends Controller
         return Storage::disk('public')->download($doc->file_path, $doc->file_name);
     }
 }
-

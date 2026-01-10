@@ -58,6 +58,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/projects', [\App\Http\Controllers\AdminProjectController::class, 'index'])->name('projects');
     Route::post('/projects', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
     Route::post('/projects/{project}/assign-developer', [\App\Http\Controllers\AdminProjectController::class, 'assignDeveloper'])->name('projects.assignDeveloper');
+
+    Route::get('/projects/create', [\App\Http\Controllers\AdminProjectController::class, 'create'])->name('projects.create');
     Route::get('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/{organization}', [\App\Http\Controllers\AdminOrganizationController::class, 'show'])->name('organizations.show');
     Route::post('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'store'])->name('organizations.store');
@@ -72,6 +74,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/licensing/{license}/reject', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'reject'])->name('licensing.reject');
     Route::put('/licensing/{license}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'update'])->name('licensing.update');
     Route::get('/licensing/{license}/documents/{docId}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'downloadDoc'])->name('licensing.documents.download');
+    //add issue licence
+    Route::get('/new-business-license', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'displayIssuePage'])->name('licensing.issue');
     Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
     Route::view('/transfers', 'admin.pages.transfers')->name('transfers');
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');

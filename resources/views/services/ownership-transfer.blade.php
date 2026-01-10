@@ -50,14 +50,7 @@
                     <input type="text" class="form-control" placeholder="New owner UUID" required pattern="^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$">
                   </div>
                 </div>
-                <div class="mb-3">
-                  <label class="form-label">Status</label>
-                  <select class="form-select" required>
-                    <option value="Requested" selected>Requested</option>
-                    <option value="Approved" disabled>Approved</option>
-                    <option value="Completed" disabled>Completed</option>
-                  </select>
-                </div>
+
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Approved By</label>
