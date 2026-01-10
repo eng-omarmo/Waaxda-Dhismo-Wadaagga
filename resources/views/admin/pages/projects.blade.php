@@ -6,8 +6,6 @@
 <div class="alert alert-success" role="alert">{{ session('status') }}</div>
 @endif
 
-
-
 <div class="card mb-3">
     <div class="card-body">
         <form class="row g-3" method="GET" action="{{ route('admin.projects') }}" aria-label="Filter and search projects">

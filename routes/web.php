@@ -81,9 +81,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     //add issue licence
     Route::get('/new-business-license', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'displayIssuePage'])->name('licensing.issue');
     Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
-    Route::view('/transfers', 'admin.pages.transfers')->name('transfers');
+    Route::view('/transfers', ['\App\Http\Controllers\ApartmentTransferController', 'index'])->name('transfers');
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');
     Route::view('/audit', 'admin.pages.audit')->name('audit');
     Route::view('/roles', 'admin.pages.roles')->name('roles');
     Route::view('/reports', 'admin.pages.reports')->name('reports');
+
+
+
 });
