@@ -10,10 +10,9 @@ class ApartmentTransferController extends Controller
 
     public function index()
     {
-        $transfers = ApartmentTransfer::all();
-
+        $ApartmentTransfer = ApartmentTransfer::paginate(10);
         return view('admin.apartments.Transfer.index', [
-            'transfers' => $transfers,
+            'transfers' => $ApartmentTransfer,
         ]);
     }
 }
