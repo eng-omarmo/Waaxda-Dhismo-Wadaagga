@@ -7,10 +7,10 @@ use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\ServiceTrackingController;
 use App\Http\Controllers\OrganizationRegistrationController;
 use App\Http\Controllers\BusinessLicenseController;
+use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\ServiceController;
 
-Route::get('/', function () {
-    return view('landing');
-});
+Route::get('/', [LandingPageController::class, 'index'])->name('landing.page.index');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -39,6 +39,7 @@ Route::get('/services/business-license', [BusinessLicenseController::class, 'sho
 Route::post('/services/business-license', [BusinessLicenseController::class, 'store'])->middleware('throttle:15,1')->name('services.business-license.store');
 Route::view('/services/ownership-certificate', 'services.ownership-certificate')->name('services.ownership-certificate');
 Route::view('/services/ownership-transfer', 'services.ownership-transfer')->name('services.ownership-transfer');
+Route::get('/services/{slug}', [ServiceController::class, 'show'])->name('services.show');
 Route::get('/track', [ServiceTrackingController::class, 'show'])->name('track.show');
 Route::post('/track', [ServiceTrackingController::class, 'lookup'])->middleware('throttle:15,1')->name('track.lookup');
 
@@ -92,6 +93,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::view('/roles', 'admin.pages.roles')->name('roles');
     Route::view('/reports', 'admin.pages.reports')->name('reports');
 
+    Route::get('/manual-requests', [\App\Http\Controllers\AdminManualRequestController::class, 'index'])->name('manual-requests.index');
+    Route::get('/manual-requests/create', [\App\Http\Controllers\AdminManualRequestController::class, 'create'])->name('manual-requests.create');
+    Route::post('/manual-requests', [\App\Http\Controllers\AdminManualRequestController::class, 'store'])->name('manual-requests.store');
+    Route::get('/manual-requests/{manual_request}', [\App\Http\Controllers\AdminManualRequestController::class, 'show'])->name('manual-requests.show');
+    Route::post('/manual-requests/{manual_request}/verify-payment', [\App\Http\Controllers\AdminManualRequestController::class, 'verifyPayment'])->name('manual-requests.verify');
+    Route::post('/manual-requests/{manual_request}/payments/{payment}/reconcile', [\App\Http\Controllers\AdminManualRequestController::class, 'reconcile'])->name('manual-requests.reconcile');
+    Route::post('/manual-requests/{manual_request}/reject', [\App\Http\Controllers\AdminManualRequestController::class, 'reject'])->name('manual-requests.reject');
 
-
-});
+}) ;

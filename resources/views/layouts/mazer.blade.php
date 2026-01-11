@@ -58,28 +58,27 @@
                             </ul>
                         </li>
 
-                        <li class="sidebar-item has-sub {{ request()->is('admin/permits') ? 'active' : '' }}">
-                            <a href="{{ url('/admin/permits') }}" class="sidebar-link">
+                        <li class="sidebar-item has-sub {{ request()->is('admin/permits*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.permits.index') }}" class="sidebar-link">
                                 <i class="bi bi-clipboard-check"></i>
                                 <span>Construction Permits</span>
                             </a>
                             <ul class="submenu">
-                                <li class="submenu-item"><a href="{{ url('/admin/permits') }}">Permit Requests – Pending / Approved / Rejected</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/permits') }}#approve">Approve Permits</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/permits') }}#history">Permit History</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.permits.index') }}">Permit List</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.permits.create') }}">Request New Permit</a></li>
                             </ul>
                         </li>
 
                         <li class="sidebar-item has-sub {{ request()->is('admin/apartments*') || request()->is('admin/buildings*') ? 'active' : '' }}">
-                                <a href="{{ route('admin.apartments.index') }}" class="sidebar-link">
-                                    <i class="bi bi-building"></i>
-                                    <span>Apartments</span>
-                                </a>
-                                <ul class="submenu">
-                                    <li class="submenu-item"><a href="{{ route('admin.apartments.index') }}">Apartment List</a></li>
-                                    <li class="submenu-item"><a href="{{ route('admin.apartments.create') }}">Add New Apartment</a></li>
-                                </ul>
-                            </li>
+                            <a href="{{ route('admin.apartments.index') }}" class="sidebar-link">
+                                <i class="bi bi-building"></i>
+                                <span>Apartments</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item"><a href="{{ route('admin.apartments.index') }}">Apartment List</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.apartments.create') }}">Add New Apartment</a></li>
+                            </ul>
+                        </li>
 
                         <li class="sidebar-item has-sub {{ request()->is('admin/licensing') ? 'active' : '' }}">
                             <a href="{{ url('/admin/licensing') }}" class="sidebar-link">
@@ -148,6 +147,13 @@
                                 <li class="submenu-item"><a href="{{ route('admin.users.index') }}">All Users – Roles &amp; Status</a></li>
                                 <li class="submenu-item"><a href="{{ url('/admin/roles') }}">Roles Management – Citizen / Officer / Admin</a></li>
                             </ul>
+                        </li>
+
+                        <li class="sidebar-item {{ request()->is('admin/manual-requests*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.manual-requests.index') }}" class="sidebar-link">
+                                <i class="bi bi-cash-coin"></i>
+                                <span>Manual Processing</span>
+                            </a>
                         </li>
 
                         <li class="sidebar-item has-sub {{ request()->is('admin/reports') ? 'active' : '' }}">

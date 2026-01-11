@@ -41,5 +41,8 @@ class DatabaseSeeder extends Seeder
                 'active' => true,
             ]
         );
+
+        // Call the ServiceSeeder
+        $this->call(ServiceSeeder::class);
     }
 }

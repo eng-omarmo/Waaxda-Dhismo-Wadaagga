@@ -224,86 +224,30 @@
                 </p>
             </div>
 
-            <div class="row g-4 justify-content-center">
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/project-registration" class="text-decoration-none h-100 d-block">
+            <div class="row g-4">
+                @foreach($services as $service)
+                <div class="col-xl-3 col-lg-3 col-md-6">
+                    <a href="{{ route('services.show', $service->slug) }}" class="text-decoration-none h-100 d-block">
                         <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-primary text-white shadow-sm">
-                                <i class="bi bi-file-earmark-medical"></i>
-                            </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 1</span>
-                            <h5 class="fw-bold text-dark">Diiwaangelinta Mashruuca</h5>
-                            <p class="text-muted small mb-0">Bilow adiga oo diiwaangelinaya mashruuca si adeegyadu ugu xirmaan.</p>
-                        </div>
-                    </a>
-                </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/developer-registration" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-mu-blue text-white shadow-sm" style="background-color: var(--mu-blue) !important;">
-                                <i class="bi bi-person-badge"></i>
+                            <div class="icon-box shadow-sm mb-3 {{ $service->getIconColor() }} text-white">
+                                <i class="bi {{ $service->icon_class ?? 'bi-gear' }}"></i>
                             </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 2</span>
-                            <h5 class="fw-bold text-dark">Diiwaangelinta Shirkadaha</h5>
-                            <p class="text-muted small mb-0">Diiwaangelinta shirkadaha iyo dhismeyaasha wadaagga ah ee dhismaha fuliya.</p>
-                        </div>
-                    </a>
-                </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/business-license" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-info text-white shadow-sm">
-                                <i class="bi bi-card-checklist"></i>
-                            </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 3</span>
-                            <h5 class="fw-bold text-dark">Ruqsadda Ganacsiga</h5>
-                            <p class="text-muted small mb-0">Bixinta ruqsadda rasmiga ah ee looga ganacsado dhismooyinka wadaagga ah.</p>
-                        </div>
-                    </a>
-                </div>
-                ~
+                            <span class="badge bg-light text-primary mb-2 w-50">Step {{ $loop->iteration }}</span>
 
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/ownership-certificate" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-primary text-white shadow-sm">
-                                <i class="bi bi-building-check"></i>
-                            </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 4</span>
-                            <h5 class="fw-bold text-dark">Lahaanshaha Abaartada</h5>
-                            <p class="text-muted small mb-0">Soo saarista waraaqaha caddaynta lahaanshaha cutubyada guryaha (Units).</p>
-                        </div>
-                    </a>
-                </div>
+                            <h6 class="fw-bold text-dark">{{ $service->name }}</h6>
+                            <p class="text-muted small mb-0">{{ $service->description }}</p>
 
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/ownership-transfer" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-dark text-white shadow-sm">
-                                <i class="bi bi-arrow-left-right"></i>
+                            @if($service->price > 0)
+                            <div class="mt-3 pt-3 border-top">
+                                <span class="fw-bold text-primary">${{ number_format($service->price, 2) }}</span>
                             </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 5</span>
-                            <h5 class="fw-bold text-dark">Kala Wareejinta</h5>
-                            <p class="text-muted small mb-0">Habraaca rasmiga ah ee hantida looga iibinayo ama loogu wareejinayo qof kale.</p>
+                            @endif
                         </div>
                     </a>
                 </div>
-                <div class="col-lg-4 col-md-6">
-                    <a href="/services/ownership-transfer" class="text-decoration-none h-100 d-block">
-                        <div class="card h-100 service-card border-0 shadow-sm p-4">
-                            <div class="icon-box bg-dark text-white shadow-sm">
-                                <i class="bi bi-arrow-left-right"></i>
-                            </div>
-                            <span class="badge bg-light text-primary mb-2 w-25">Step 6</span>
-                            <h5 class="fw-bold text-dark">Fasaxa Dhismaha (Construction Permit)</h5>
-                            <p class="text-muted small mb-0">This service issues official permission to start constructing an apartment building.
-                            </p>
-                        </div>
-                    </a>
-                </div>
-
+                @endforeach
             </div>
         </section>
 
