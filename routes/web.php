@@ -16,6 +16,26 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 });
 
+Route::get('/register/start', [\App\Http\Controllers\SelfRegistrationController::class, 'start'])->name('register.start');
+Route::post('/register/step1', [\App\Http\Controllers\SelfRegistrationController::class, 'storeStep1'])->name('register.step1.store');
+Route::get('/register/step2', [\App\Http\Controllers\SelfRegistrationController::class, 'step2'])->name('register.step2');
+Route::post('/register/pay', [\App\Http\Controllers\SelfRegistrationController::class, 'processPayment'])->name('register.pay');
+Route::get('/register/resume/{token}', [\App\Http\Controllers\SelfRegistrationController::class, 'resume'])->name('register.resume');
+Route::get('/receipt/online/{payment}', [\App\Http\Controllers\SelfRegistrationController::class, 'publicReceiptOnline'])->middleware('signed')->name('receipt.online.show');
+
+Route::get('/portal', [\App\Http\Controllers\SelfServiceController::class, 'start'])->name('portal.start');
+Route::post('/portal/service', [\App\Http\Controllers\SelfServiceController::class, 'storeService'])->name('portal.service.store');
+Route::get('/portal/info', [\App\Http\Controllers\SelfServiceController::class, 'info'])->name('portal.info');
+Route::post('/portal/info', [\App\Http\Controllers\SelfServiceController::class, 'storeInfo'])->name('portal.info.store');
+Route::get('/portal/details', [\App\Http\Controllers\SelfServiceController::class, 'details'])->name('portal.details');
+Route::post('/portal/details', [\App\Http\Controllers\SelfServiceController::class, 'storeDetails'])->name('portal.details.store');
+Route::get('/portal/docs', [\App\Http\Controllers\SelfServiceController::class, 'docs'])->name('portal.docs');
+Route::post('/portal/docs', [\App\Http\Controllers\SelfServiceController::class, 'storeDocs'])->name('portal.docs.store');
+Route::get('/portal/pay', [\App\Http\Controllers\SelfServiceController::class, 'pay'])->name('portal.pay');
+Route::post('/portal/pay', [\App\Http\Controllers\SelfServiceController::class, 'processPay'])->name('portal.pay.store');
+Route::get('/portal/receipt', [\App\Http\Controllers\SelfServiceController::class, 'receipt'])->name('portal.receipt');
+Route::get('/portal/resume/{token}', [\App\Http\Controllers\SelfServiceController::class, 'resume'])->name('portal.resume');
+Route::get('/portal/receipt/{payment}', [\App\Http\Controllers\SelfServiceController::class, 'publicReceipt'])->middleware('signed')->name('portal.receipt.public');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.attempt');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -40,6 +60,7 @@ Route::post('/services/business-license', [BusinessLicenseController::class, 'st
 Route::view('/services/ownership-certificate', 'services.ownership-certificate')->name('services.ownership-certificate');
 Route::view('/services/ownership-transfer', 'services.ownership-transfer')->name('services.ownership-transfer');
 Route::get('/services/{slug}', [ServiceController::class, 'show'])->name('services.show');
+
 Route::get('/track', [ServiceTrackingController::class, 'show'])->name('track.show');
 Route::post('/track', [ServiceTrackingController::class, 'lookup'])->middleware('throttle:15,1')->name('track.lookup');
 
@@ -100,5 +121,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/manual-requests/{manual_request}/verify-payment', [\App\Http\Controllers\AdminManualRequestController::class, 'verifyPayment'])->name('manual-requests.verify');
     Route::post('/manual-requests/{manual_request}/payments/{payment}/reconcile', [\App\Http\Controllers\AdminManualRequestController::class, 'reconcile'])->name('manual-requests.reconcile');
     Route::post('/manual-requests/{manual_request}/reject', [\App\Http\Controllers\AdminManualRequestController::class, 'reject'])->name('manual-requests.reject');
+    Route::get('/manual-requests/{manual_request}/payments/{payment}/receipt', [\App\Http\Controllers\AdminManualRequestController::class, 'receipt'])->name('manual-requests.receipt');
 
 }) ;
+
+Route::get('/receipt/{payment}', [\App\Http\Controllers\AdminManualRequestController::class, 'publicReceipt'])->middleware('signed')->name('receipt.show');

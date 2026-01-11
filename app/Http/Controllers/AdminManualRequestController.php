@@ -80,13 +80,14 @@ class AdminManualRequestController extends Controller
     {
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'payment_date' => ['required', 'date'],
+            'payment_date' => ['required', 'date', 'before_or_equal:today'],
             'reference_number' => ['required', 'string', 'max:255', 'unique:payment_verifications,reference_number'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $service = $manual_request->service;
-        $status = bccomp((string) $validated['amount'], (string) $service->price, 2) === 0 ? 'verified' : 'discrepancy';
+        $diff = abs((float) $validated['amount'] - (float) $service->price);
+        $status = $diff < 0.01 ? 'verified' : 'discrepancy';
 
         $pv = PaymentVerification::create([
             'service_request_id' => $manual_request->id,
@@ -185,5 +186,29 @@ class AdminManualRequestController extends Controller
         }
 
         return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Request rejected and user notified');
+    }
+
+    public function receipt(ServiceRequest $manual_request, PaymentVerification $payment)
+    {
+        if ($payment->service_request_id !== $manual_request->id) {
+            abort(404);
+        }
+        $receiptNumber = 'IPAMS-'.str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT);
+        return view('admin.manual.requests.receipt', [
+            'request' => $manual_request,
+            'payment' => $payment,
+            'receiptNumber' => $receiptNumber,
+        ]);
+    }
+
+    public function publicReceipt(PaymentVerification $payment)
+    {
+        $manual_request = ServiceRequest::with('service')->findOrFail($payment->service_request_id);
+        $receiptNumber = 'IPAMS-'.str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT);
+        return view('receipt', [
+            'request' => $manual_request,
+            'payment' => $payment,
+            'receiptNumber' => $receiptNumber,
+        ]);
     }
 }

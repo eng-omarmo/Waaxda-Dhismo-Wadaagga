@@ -206,6 +206,7 @@
                     <p class="fs-5 opacity-90 mb-4 fw-normal">Waxaan u fududaynaynaa muwaadiniinta reer Muqdisho helista fasaxyada dhismaha, diiwaangelinta hantida, iyo kala wareejinta abaartada si sharci ah.</p>
                     <div class="d-flex gap-3">
                         <a href="#services" class="btn btn-light btn-lg px-5 fw-bold text-primary shadow">Adeegyada</a>
+                        <a href="{{ route('register.start') }}" class="btn btn-primary btn-lg px-5 fw-bold">Register & Pay</a>
                         <a href="#contact" class="btn btn-outline-light btn-lg px-5">Contact Us</a>
                     </div>
                 </div>
