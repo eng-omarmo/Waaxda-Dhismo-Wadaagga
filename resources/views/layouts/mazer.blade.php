@@ -168,6 +168,27 @@
                             </ul>
                         </li>
 
+                        <li class="sidebar-item has-sub {{ request()->is('admin/certificates*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.certificates.index') }}" class="sidebar-link">
+                                <i class="bi bi-award"></i>
+                                <span>Certificates &amp; Clearances</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item"><a href="{{ route('admin.certificates.index') }}">Certificate List</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.certificates.create') }}">Generate Certificate</a></li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item">
+                            <a href="#" class="sidebar-link" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Logout</span>
+                            </a>
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                @csrf
+                            </form>
+                        </li>
+
                     </ul>
                 </div>
                 <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>

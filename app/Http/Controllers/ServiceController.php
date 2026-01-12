@@ -56,21 +56,7 @@ class ServiceController extends Controller
     {
         $service = Service::where('slug', $slug)->firstOrFail();
 
-        $map = [
-            'project-registration' => 'services.project-registration',
-            'developer-registration' => 'services.developer-registration',
-            'business-license' => 'services.business-license',
-            'ownership-certificate' => 'services.ownership-certificate',
-            'ownership-transfer' => 'services.ownership-transfer',
-            'property-transfer-services' => 'services.ownership-transfer',
-            'construction-permit-application' => 'services.project-registration',
-        ];
-
-        if (isset($map[$service->slug])) {
-            return redirect()->route($map[$service->slug]);
-        }
-
-        abort(404);
+        return redirect()->route('portal.start', ['service' => $service->id]);
     }
 
     /**
@@ -116,7 +102,4 @@ class ServiceController extends Controller
         return redirect()->route('admin.services.index')
             ->with('success', 'Service deleted successfully.');
     }
-
-
-
 }

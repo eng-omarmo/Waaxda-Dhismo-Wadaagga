@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ManualOperationLog;
+use App\Models\OnlinePayment;
+use App\Models\PendingRegistration;
+use App\Models\Service;
+use App\Models\ServiceRequest;
 use App\Models\UserChange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +17,37 @@ class ProfileController extends Controller
     public function show(Request $request)
     {
         $user = $request->user();
-        return view('profile.show', compact('user'));
+        $role = $user->role;
+        $payments = OnlinePayment::whereHas('registration', function ($q) use ($user) {
+                $q->where('email', $user->email);
+            })
+            ->with(['registration', 'registration.service'])
+            ->latest()
+            ->get();
+
+        $services = Service::orderBy('name')->get();
+        $requests = ServiceRequest::where('user_email', $user->email)
+            ->with(['service', 'payments'])
+            ->latest()
+            ->get();
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'view_user_portal',
+            'target_type' => 'User',
+            'target_id' => (string) $user->id,
+            'details' => ['role' => $role, 'services_count' => $services->count(), 'requests_count' => $requests->count()],
+        ]);
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'view_user_payments',
+            'target_type' => 'User',
+            'target_id' => (string) $user->id,
+            'details' => ['payments_count' => $payments->count()],
+        ]);
+
+        return view('profile.show', compact('user', 'role', 'services', 'requests', 'payments'));
     }
 
     public function update(Request $request)

@@ -14,10 +14,16 @@
             <div class="card-body">
               <div class="mb-4">
                 <div class="d-flex justify-content-between">
-                  <div><strong>Step 2</strong> of 6</div>
+                  @php
+                    $isPermit = ($reg->service_slug === 'construction-permit-application');
+                    $stepLabel = $isPermit ? 'Step 1' : 'Step 2';
+                    $ofLabel = $isPermit ? 'of 3' : 'of 6';
+                    $progressPct = $isPermit ? 33 : 33;
+                  @endphp
+                  <div><strong>{{ $stepLabel }}</strong> {{ $ofLabel }}</div>
                   <div class="text-muted">Your details</div>
                 </div>
-                <div class="progress mt-2"><div class="progress-bar" style="width: 33%"></div></div>
+                <div class="progress mt-2"><div class="progress-bar" style="width: {{ $progressPct }}%"></div></div>
               </div>
               <form method="post" action="{{ route('portal.info.store') }}">
                 @csrf
@@ -37,11 +43,32 @@
                   <label class="form-label">National ID (optional)</label>
                   <input name="national_id" type="text" class="form-control" value="{{ old('national_id', data_get($reg->data,'national_id')) }}">
                 </div>
+                @if($isPermit)
+                <hr>
+                <div class="mb-3">
+                  <label class="form-label">Create Account Password</label>
+                  <input name="password" type="password" class="form-control" autocomplete="new-password">
+                  <div class="form-text">Minimum 12 characters, include upper/lowercase, numbers and symbols.</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Confirm Password</label>
+                  <input name="password_confirmation" type="password" class="form-control" autocomplete="new-password">
+                </div>
+                @endif
                 <div class="d-flex justify-content-between">
                   <a href="{{ route('portal.start') }}" class="btn btn-outline-secondary">Back</a>
                   <button class="btn btn-primary">Continue</button>
                 </div>
               </form>
+              @if ($errors->any())
+              <div class="alert alert-danger mt-3">
+                <ul class="mb-0">
+                  @foreach ($errors->all() as $error)
+                  <li>{{ $error }}</li>
+                  @endforeach
+                </ul>
+              </div>
+              @endif
               <div class="mt-3">
                 <a href="{{ route('portal.resume', $reg->resume_token) }}" class="btn btn-link">Save progress and resume later</a>
               </div>

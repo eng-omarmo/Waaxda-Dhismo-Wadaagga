@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminUserController;
@@ -53,6 +54,9 @@ Route::get('/admin', function () {
 Route::get('/services/project-registration', [ProjectRegistrationController::class, 'show'])->name('services.project-registration');
 Route::post('/services/project-registration', [ProjectRegistrationController::class, 'store'])->name('services.project-registration.store');
 Route::get('/services/project-registration/thank-you/{id}', [ProjectRegistrationController::class, 'thankyou'])->name('services.project-registration.thankyou');
+Route::get('/services/construction-permit', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'publicShow'])->name('services.construction-permit');
+Route::post('/services/construction-permit', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'publicStore'])->middleware('throttle:15,1')->name('services.construction-permit.store');
+Route::get('/services/construction-permit/thank-you/{id}', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'publicThankyou'])->name('services.construction-permit.thankyou');
 Route::get('/services/developer-registration', [OrganizationRegistrationController::class, 'show'])->name('services.developer-registration');
 Route::post('/services/developer-registration', [OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('services.developer-registration.store');
 Route::get('/services/business-license', [BusinessLicenseController::class, 'show'])->name('services.business-license');
@@ -80,8 +84,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/projects', [\App\Http\Controllers\AdminProjectController::class, 'index'])->name('projects');
     Route::post('/projects', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
     Route::post('/projects/{project}/assign-developer', [\App\Http\Controllers\AdminProjectController::class, 'assignDeveloper'])->name('projects.assignDeveloper');
-
+    Route::get('/projects/{project}/edit', [\App\Http\Controllers\AdminProjectController::class, 'edit'])->name('projects.edit');
+    Route::delete('/projects/{project}', [\App\Http\Controllers\AdminProjectController::class, 'destroy'])->name('projects.destroy');
+    Route::put('/projects/{project}', [\App\Http\Controllers\AdminProjectController::class, 'update'])->name('projects.update');
     Route::get('/projects/create', [\App\Http\Controllers\AdminProjectController::class, 'create'])->name('projects.create');
+    Route::get('project/store', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
     Route::get('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/{organization}', [\App\Http\Controllers\AdminOrganizationController::class, 'show'])->name('organizations.show');
     Route::post('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'store'])->name('organizations.store');
@@ -114,6 +121,28 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::view('/roles', 'admin.pages.roles')->name('roles');
     Route::view('/reports', 'admin.pages.reports')->name('reports');
 
+    Route::get('/certificates', [\App\Http\Controllers\CertificateController::class, 'index'])->name('certificates.index');
+    Route::get('/certificates/create', [\App\Http\Controllers\CertificateController::class, 'create'])->name('certificates.create');
+    Route::get('/certificates/{certificate}', [\App\Http\Controllers\CertificateController::class, 'show'])->whereNumber('certificate')->name('certificates.show');
+    Route::post('/certificates', [\App\Http\Controllers\CertificateController::class, 'store'])->name('certificates.store');
+    Route::get('/certificates/templates/{service}', [\App\Http\Controllers\CertificateController::class, 'template'])->name('certificates.template');
+    Route::get('/certificates/{certificate}/download', [\App\Http\Controllers\CertificateController::class, 'download'])->name('certificates.download');
+
+    Route::get('/payments/sync', function () {
+        $updated = \App\Models\OnlinePayment::where('status', 'initiated')->update([
+            'status' => 'completed',
+            'verified_at' => now(),
+        ]);
+        \App\Models\ManualOperationLog::create([
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'action' => 'payments_sync',
+            'target_type' => 'OnlinePayment',
+            'target_id' => 'bulk',
+            'details' => ['updated_count' => $updated],
+        ]);
+        return redirect()->route('admin.reports')->with('status', "Synchronized {$updated} payment(s)");
+    })->name('payments.sync');
+
     Route::get('/manual-requests', [\App\Http\Controllers\AdminManualRequestController::class, 'index'])->name('manual-requests.index');
     Route::get('/manual-requests/create', [\App\Http\Controllers\AdminManualRequestController::class, 'create'])->name('manual-requests.create');
     Route::post('/manual-requests', [\App\Http\Controllers\AdminManualRequestController::class, 'store'])->name('manual-requests.store');
@@ -122,7 +151,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/manual-requests/{manual_request}/payments/{payment}/reconcile', [\App\Http\Controllers\AdminManualRequestController::class, 'reconcile'])->name('manual-requests.reconcile');
     Route::post('/manual-requests/{manual_request}/reject', [\App\Http\Controllers\AdminManualRequestController::class, 'reject'])->name('manual-requests.reject');
     Route::get('/manual-requests/{manual_request}/payments/{payment}/receipt', [\App\Http\Controllers\AdminManualRequestController::class, 'receipt'])->name('manual-requests.receipt');
-
-}) ;
+});
 
 Route::get('/receipt/{payment}', [\App\Http\Controllers\AdminManualRequestController::class, 'publicReceipt'])->middleware('signed')->name('receipt.show');
+
+Route::get('/certificate/{certificate}', [\App\Http\Controllers\CertificateController::class, 'publicShow'])->middleware('signed')->name('certificate.public');

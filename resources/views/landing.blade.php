@@ -206,7 +206,6 @@
                     <p class="fs-5 opacity-90 mb-4 fw-normal">Waxaan u fududaynaynaa muwaadiniinta reer Muqdisho helista fasaxyada dhismaha, diiwaangelinta hantida, iyo kala wareejinta abaartada si sharci ah.</p>
                     <div class="d-flex gap-3">
                         <a href="#services" class="btn btn-light btn-lg px-5 fw-bold text-primary shadow">Adeegyada</a>
-                        <a href="{{ route('register.start') }}" class="btn btn-primary btn-lg px-5 fw-bold">Register & Pay</a>
                         <a href="#contact" class="btn btn-outline-light btn-lg px-5">Contact Us</a>
                     </div>
                 </div>
@@ -228,7 +227,7 @@
             <div class="row g-4">
                 @foreach($services as $service)
                 <div class="col-xl-3 col-lg-3 col-md-6">
-                    <a href="{{ route('services.show', $service->slug) }}" class="text-decoration-none h-100 d-block">
+                    <a href="{{ route('portal.start', ['serviceId' => $service->id]) }}" class="text-decoration-none h-100 d-block">
                         <div class="card h-100 service-card border-0 shadow-sm p-4">
 
                             <div class="icon-box shadow-sm mb-3 {{ $service->getIconColor() }} text-white">

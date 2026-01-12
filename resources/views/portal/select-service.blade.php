@@ -27,7 +27,7 @@
                   @foreach($services as $s)
                     <label class="list-group-item d-flex justify-content-between align-items-center">
                       <div>
-                        <input class="form-check-input me-3" type="radio" name="service_id" value="{{ $s->id }}" required>
+                        <input class="form-check-input me-3" type="radio" name="serviceId" value="{{ $s->id }}" required>
                         <span class="fw-bold">{{ $s->name }}</span>
                         <div class="small text-muted">{{ $s->description }}</div>
                       </div>

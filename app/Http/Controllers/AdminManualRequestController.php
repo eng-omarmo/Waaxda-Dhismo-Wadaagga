@@ -6,6 +6,8 @@ use App\Models\ManualOperationLog;
 use App\Models\PaymentVerification;
 use App\Models\Service;
 use App\Models\ServiceRequest;
+use App\Models\Certificate;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -113,6 +115,20 @@ class AdminManualRequestController extends Controller
             'details' => ['payment_id' => $pv->id, 'status' => $status],
         ]);
 
+        if ($status === 'verified') {
+            $project = Project::where('registrant_email', $manual_request->user_email)->latest()->first();
+            if ($project) {
+                $cert = Certificate::issueForProject($project, $manual_request->service, Auth::id());
+                ManualOperationLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'issue_certificate',
+                    'target_type' => 'Project',
+                    'target_id' => (string) $project->id,
+                    'details' => ['certificate_id' => $cert->id],
+                ]);
+            }
+        }
+
         try {
             if ($status === 'verified') {
                 Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $pv));
@@ -152,6 +168,18 @@ class AdminManualRequestController extends Controller
             'target_id' => (string) $manual_request->id,
             'details' => ['payment_id' => $payment->id],
         ]);
+
+        $project = Project::where('registrant_email', $manual_request->user_email)->latest()->first();
+        if ($project) {
+            $cert = Certificate::issueForProject($project, $manual_request->service, Auth::id());
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'issue_certificate',
+                'target_type' => 'Project',
+                'target_id' => (string) $project->id,
+                'details' => ['certificate_id' => $cert->id],
+            ]);
+        }
 
         try {
             Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $payment));

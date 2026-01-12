@@ -93,6 +93,16 @@
                                 </div>
                             </div>
                         </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ route('admin.projects.edit', $p) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <form method="POST" action="{{ route('admin.projects.destroy', $p) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
                     <div class="modal fade" id="assignDev-{{ $p->id }}" tabindex="-1" aria-labelledby="assignDevLabel-{{ $p->id }}" aria-hidden="true">
                         <div class="modal-dialog">

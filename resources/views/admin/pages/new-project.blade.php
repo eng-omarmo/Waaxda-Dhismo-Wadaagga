@@ -9,7 +9,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="mb-4">Contact Details</h5>
-                    <form method="POST" action="{{ route('services.project-registration.store') }}">
+                    <form method="POST" action="{{ route('admin.projects.store') }}">
                         @csrf
                         <div class="row">
                             <div class="col-md-6 mb-3">
