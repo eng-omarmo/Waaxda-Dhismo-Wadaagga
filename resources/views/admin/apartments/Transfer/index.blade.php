@@ -17,17 +17,30 @@
 
             <div class="card-body">
 
-                {{-- Search --}}
+                {{-- Filters --}}
                 <form method="GET" action="{{ route('admin.apartment-transfers.index') }}" class="mb-3">
-                    <div class="input-group">
-                        <input
-                            type="text"
-                            name="search"
-                            class="form-control"
-                            placeholder="Search by transfer reference, owner name, unit..."
-                            value="{{ request('search') }}"
-                        >
-                        <button class="btn btn-outline-secondary" type="submit">Search</button>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <input type="text" name="search" class="form-control" placeholder="Ref / Apt / Owner ID" value="{{ request('search') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="status" class="form-select">
+                                <option value="">Any Status</option>
+                                <option value="Pending" @selected(request('status')==='Pending')>Pending</option>
+                                <option value="Approved" @selected(request('status')==='Approved')>Approved</option>
+                                <option value="Rejected" @selected(request('status')==='Rejected')>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="from" class="form-control" value="{{ request('from') }}" placeholder="From">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="to" class="form-control" value="{{ request('to') }}" placeholder="To">
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-secondary" type="submit">Apply Filters</button>
+                            <a href="{{ route('admin.apartment-transfers.index') }}" class="btn btn-link">Reset</a>
+                        </div>
                     </div>
                 </form>
 
@@ -80,27 +93,19 @@
                                             {{ $transfer->approval_status }}
                                         </span>
                                     </td>
-                                    <td>
-                                        <a href="{{ route('admin.apartment-transfers.show', $transfer) }}"
-                                           class="btn btn-sm btn-info">
-                                            View
-                                        </a>
-
-                                        <a href="{{ route('admin.apartment-transfers.edit', $transfer) }}"
-                                           class="btn btn-sm btn-primary">
-                                            Edit
-                                        </a>
-
-                                        <form action="{{ route('admin.apartment-transfers.destroy', $transfer) }}"
-                                              method="POST"
-                                              class="d-inline"
-                                              onsubmit="return confirm('Are you sure you want to delete this transfer?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                Delete
-                                            </button>
-                                        </form>
+                                    <td class="d-flex gap-1">
+                                        <a href="{{ route('admin.apartment-transfers.deed', $transfer) }}" class="btn btn-sm btn-outline-primary">Deed</a>
+                                        @if($transfer->approval_status === 'Pending')
+                                            <form action="{{ route('admin.apartment-transfers.approve', $transfer) }}" method="POST" onsubmit="return confirm('Approve this transfer?');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                            </form>
+                                            <form action="{{ route('admin.apartment-transfers.reject', $transfer) }}" method="POST" onsubmit="return confirm('Reject this transfer?');">
+                                                @csrf
+                                                <input type="hidden" name="approval_reason" value="Insufficient documentation">
+                                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

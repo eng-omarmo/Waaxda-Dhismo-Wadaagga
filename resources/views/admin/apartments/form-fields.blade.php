@@ -25,10 +25,31 @@
 
 </div>
 
-
-
 <hr>
-<h5>Contact Person</h5>
+<h5>Owner</h5>
+<div class="row">
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="owner_full_name" class="form-label">Owner Full Name</label>
+            <input type="text" class="form-control" id="owner_full_name" name="owner_full_name" value="{{ old('owner_full_name', $apartment->owner?->full_name ?? '') }}">
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="owner_national_id" class="form-label">Owner National ID</label>
+            <input type="text" class="form-control" id="owner_national_id" name="owner_national_id" value="{{ old('owner_national_id', $apartment->owner?->national_id ?? '') }}">
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="owner_contact_phone" class="form-label">Owner Phone</label>
+            <input type="text" class="form-control" id="owner_contact_phone" name="owner_contact_phone" value="{{ old('owner_contact_phone', $apartment->owner?->contact_phone ?? '') }}">
+        </div>
+    </div>
+</div>
+
+
+
 <div class="row">
     <div class="col-md-4">
         <div class="mb-3">

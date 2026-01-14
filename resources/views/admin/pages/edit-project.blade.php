@@ -83,7 +83,8 @@
                             <select name="status" class="form-select">
                                 <option value="Draft" @selected($project->status === 'Draft')>Draft</option>
                                 <option value="Submitted" @selected($project->status === 'Submitted')>Submitted</option>
-                                <option value="Approved" disabled>Approved (Admin only)</option>
+                                <option value="Approved" @selected($project->status === 'Approved')>Approved</option>
+
                             </select>
                         </div>
 

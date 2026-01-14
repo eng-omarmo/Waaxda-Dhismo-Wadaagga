@@ -75,7 +75,7 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/certificates/verify/{uid}', function ($uid) {
     $certificate = Certificate::where('certificate_uid', $uid)->first();
 
-    if (!$certificate) {
+    if (! $certificate) {
         return view('certificates.not-found', ['uid' => $uid]);
     }
 
@@ -110,7 +110,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('permits/{permit}/download', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'downloadDrawing'])->name('permits.download');
 
     // Apartment (Building) Management
-    Route::get('/buildings', fn() => redirect()->route('admin.apartments.index'))->name('buildings');
+    Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
     Route::resource('apartments', \App\Http\Controllers\ApartmentController::class);
 
     Route::get('/licensing', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'index'])->name('licensing.index');
@@ -124,6 +124,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'index'])->name('apartment-transfers.index');
     Route::get('/transfers/create', [\App\Http\Controllers\ApartmentTransferController::class, 'create'])->name('apartment-transfers.create');
     Route::post('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'store'])->name('apartment-transfers.store');
+    Route::post('/transfers/{transfer}/approve', [\App\Http\Controllers\ApartmentTransferController::class, 'approve'])->name('apartment-transfers.approve');
+    Route::post('/transfers/{transfer}/reject', [\App\Http\Controllers\ApartmentTransferController::class, 'reject'])->name('apartment-transfers.reject');
+    Route::get('/transfers/{transfer}/deed', [\App\Http\Controllers\ApartmentTransferController::class, 'deed'])->name('apartment-transfers.deed');
 
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');
     Route::view('/audit', 'admin.pages.audit')->name('audit');

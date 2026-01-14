@@ -19,6 +19,15 @@
 
                 <hr>
 
+                <h5>Owner</h5>
+                <p>
+                    <strong>Name:</strong> {{ $apartment->owner?->full_name ?? 'N/A' }}<br>
+                    <strong>National ID:</strong> {{ $apartment->owner?->national_id ?? 'N/A' }}<br>
+                    <strong>Phone:</strong> {{ $apartment->owner?->contact_phone ?? 'N/A' }}
+                </p>
+
+                <hr>
+
                 <h5>Units</h5>
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -44,6 +53,36 @@
                                 <tr>
                                     <td colspan="5" class="text-center">No units found for this apartment.</td>
                                 </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr>
+                <h5>Ownership History</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Owner</th>
+                                <th>National ID</th>
+                                <th>Started</th>
+                                <th>Ended</th>
+                                <th>Ref</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php($histories = \App\Models\OwnershipHistory::where('apartment_id', $apartment->id)->orderByDesc('started_at')->get())
+                            @forelse($histories as $hist)
+                                <tr>
+                                    <td>{{ $hist->owner?->full_name }}</td>
+                                    <td>{{ $hist->owner?->national_id }}</td>
+                                    <td>{{ $hist->started_at?->toDateString() }}</td>
+                                    <td>{{ $hist->ended_at?->toDateString() ?? '—' }}</td>
+                                    <td>{{ $hist->transfer_reference_number ?? '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5" class="text-center">No ownership records.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

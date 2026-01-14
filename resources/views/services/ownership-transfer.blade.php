@@ -61,7 +61,7 @@
                     <input type="text" class="form-control" value="Set after approval" disabled>
                   </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Submit Transfer Request</button>
+                <button type="submit" class="btn btn-primary" onclick="return confirm('Confirm submitting this transfer request?')">Submit Transfer Request</button>
               </form>
             </div>
           </div>

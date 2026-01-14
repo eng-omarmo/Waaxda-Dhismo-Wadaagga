@@ -17,10 +17,16 @@ class Apartment extends Model
         'contact_phone',
         'contact_email',
         'notes',
+        'owner_profile_id',
     ];
 
     public function units()
     {
         return $this->hasMany(Unit::class);
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(OwnerProfile::class, 'owner_profile_id');
     }
 }

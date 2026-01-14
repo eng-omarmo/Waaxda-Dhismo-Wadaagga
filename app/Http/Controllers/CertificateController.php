@@ -14,9 +14,7 @@ use App\Models\ServiceRequest;
 use App\Support\StandardIdentifier;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -264,11 +262,13 @@ class CertificateController extends Controller
         $certificate->metadata = array_merge($certificate->metadata ?? [], ['fields' => $fields]);
         $certificate->save();
 
+
         $html = '<div class="p-4" style="font-family:Arial,sans-serif"><div class="d-flex align-items-center mb-3"><h3 class="mb-0" style="margin:0;padding:0">' . e($title) . '</h3></div><div class="mb-2">Service: ' . e($service->name) . '</div><div class="mb-2">Date: ' . e($issuedAt) . '</div><div class="mb-2">UID: ' . e($uid) . '</div><div class="mb-2">Standardized ID: ' . e($standardId) . '</div><hr><div class="mb-2"><strong>Entity Classification</strong>: ' . e($classification) . '</div><div class="mb-3"><strong>Details</strong></div>' . $entityDetailsHtml . '<hr><div class="d-flex align-items-center gap-3"><div>' . $qrSvg . '</div><div style="font-size:12px">Verify: ' . e($verificationLink) . '</div></div><div class="mt-3" style="font-size:12px">Authorizing Officer: ' . e($fields['officer_signature_name'] ?? 'Officer') . '</div></div>';
         $pdfData = Pdf::loadHTML($html)->setPaper('a4')->output();
         $dir = 'certificates';
         $filename = $number . '.pdf';
         $path = $dir . '/' . $filename;
+
         Storage::disk('local')->put($path, $pdfData);
         $certificate->metadata = array_merge($certificate->metadata ?? [], ['archived_pdf_path' => $path, 'verification_link' => $verificationLink]);
         $certificate->save();
@@ -290,398 +290,154 @@ class CertificateController extends Controller
 
         return redirect()->route('admin.certificates.show', $certificate)->with('status', 'Certificate generated from phone lookup');
     }
-    public function download(Request $request, Certificate $certificate)
-    {
-        $service = optional($certificate->service);
-        $meta = $certificate->metadata ?? [];
 
-        // --- Design Parameters ---
-        $issuedDate = $certificate->issued_at?->format('d/m/Y') ?? now()->format('d/m/Y');
-        $brandPrimary = '#1a4a8e';
-        $brandGold = '#c5a059';
+public function download(Request $request, Certificate $certificate)
+{
+    $service = optional($certificate->service);
+    $meta = $certificate->metadata ?? [];
 
-        $logoUrl = (string) ($meta['fields']['logo_url'] ?? $meta['logo_url'] ?? '');
-        $recipientName = mb_strtoupper((string) ($certificate->issued_to ?? $meta['fields']['recipient_name'] ?? '__________________________'));
-        $officerName = (string) ($meta['fields']['officer_signature_name'] ?? $meta['officer_signature_name'] ?? 'Agaasimaha Waaxda');
-        $uid = (string) $certificate->certificate_uid;
-        $serviceName = (string) ($service?->name ?? 'Diiwaangelinta Guriga Dabaqa');
+    // --- Design Parameters ---
+    $issuedDate = $certificate->issued_at?->format('d/m/Y') ?? now()->format('d/m/Y');
+    $brandPrimary = '#1a4a8e';
+    $brandGold = '#d4af37';
+    $brandRed = '#ce1126';
+    $brandLightBlue = '#4189dd';
 
-        // Generate verification code
-        $verifyCode = 'BRA-' . substr(strtoupper(md5($uid)), 0, 8);
+    // Remove question marks and clean text
+    $recipientName = mb_strtoupper((string) ($certificate->issued_to ?? $meta['fields']['recipient_name'] ?? ''));
+    $recipientName = $recipientName ?: '__________________________';
+    $recipientName = str_replace('?', '', $recipientName);
 
-        $html = '
+    $officerName = (string) ($meta['fields']['officer_signature_name'] ?? $meta['officer_signature_name'] ?? 'DR. YUSUF HUSSEIN JIMALE');
+    $officerName = str_replace('?', '', $officerName);
+
+    $officerTitle = (string) ($meta['fields']['officer_title'] ?? $meta['officer_title'] ?? 'GUDOOMIYE KU-XIGEENKA');
+    $officerTitle = str_replace('?', '', $officerTitle);
+
+    $uid = (string) $certificate->certificate_uid;
+    $serviceName = (string) ($service?->name ?? 'DIIWAANGELINTA GURIGA DABAQA');
+    $serviceName = str_replace('?', '', $serviceName);
+
+    $certNumber = 'BRA/CS/' . date('Y') . '/' . str_pad($uid, 5, '0', STR_PAD_LEFT);
+    $verifyCode = 'BRA-CS-' . substr(strtoupper(hash('crc32', $uid . 'BANAADIR2024')), 0, 8);
+
+    $html = '
 <!DOCTYPE html>
 <html lang="so">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 0;
-        }
+        @page { size: A4 landscape; margin: 0; }
+        body { margin: 0; padding: 0; font-family: "Times New Roman", "Arial", serif; color: #000; background: #ffffff; }
+        .certificate { width: 297mm; height: 210mm; position: relative; background: #ffffff; overflow: hidden; }
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
-            color: #1a1a1a;
-            background: #ffffff;
-        }
+        .official-border { position: absolute; top: 8mm; left: 8mm; right: 8mm; bottom: 8mm; border: 1.5mm double '.$brandPrimary.'; background: #ffffff; }
+        .inner-border { position: absolute; top: 4mm; left: 4mm; right: 4mm; bottom: 4mm; border: 1px solid '.$brandGold.'; }
 
-        /* Page Container */
-        .certificate-container {
-            width: 297mm;
-            height: 210mm;
-            position: relative;
-            background: #ffffff;
-        }
+        .government-seal { position: absolute; top: 10mm; left: 50%; transform: translateX(-50%); text-align: center; width: 60%; }
+        .national-emblem { font-size: 36pt; color: '.$brandPrimary.'; margin-bottom: 2mm; text-align: center; }
+        .republic-title { font-size: 14pt; font-weight: bold; color: '.$brandPrimary.'; margin-bottom: 1mm; text-align: center; }
+        .region-title { font-size: 20pt; font-weight: bold; color: '.$brandPrimary.'; text-transform: uppercase; text-align: center; }
 
-        /* Border */
-        .border-decoration {
-            position: absolute;
-            top: 20mm;
-            left: 20mm;
-            right: 20mm;
-            bottom: 20mm;
-            border: 3px solid ' . $brandPrimary . ';
-            background: #ffffff;
-            overflow: hidden;
-        }
+        .certificate-header { position: absolute; top: 50mm; left: 50%; transform: translateX(-50%); text-align: center; width: 80%; }
+        .certificate-title { font-size: 28pt; font-weight: bold; color: '.$brandPrimary.'; margin: 10mm 0 5mm; padding-bottom: 5mm; border-bottom: 2px solid '.$brandGold.'; text-align: center; }
+        .certificate-subtitle { font-size: 14pt; color: #333; font-style: italic; text-align: center; }
 
-        .inner-border {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            right: 8px;
-            bottom: 8px;
-            border: 1px solid ' . $brandGold . ';
-        }
+        .content-area { position: absolute; top: 105mm; left: 25mm; right: 25mm; text-align: center; }
+        .official-statement { font-size: 12pt; line-height: 1.6; margin-bottom: 10mm; color: #222; text-align: center; }
+        .recipient-name { font-family: "Georgia", serif; font-size: 32pt; font-weight: bold; color: #000; text-decoration: underline; text-decoration-color: '.$brandGold.'; text-align: center; margin-bottom: 10mm; }
 
-        /* Header */
-        .header-section {
-            text-align: center;
-            padding: 30px 0 20px;
-            border-bottom: 2px solid #f0f0f0;
-            margin: 0 40px 30px;
-        }
+        .service-name { font-size: 18pt; font-weight: bold; color: '.$brandPrimary.'; background: #f8f9fa; padding: 4mm 10mm; border-left: 5mm solid '.$brandRed.'; border-right: 5mm solid '.$brandLightBlue.'; display: inline-block; }
 
-        .logo {
-            height: 65px;
-            margin-bottom: 10px;
-        }
+        /* FIXED FOOTER ALIGNMENT */
+        .official-footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #ccc; padding-top: 8mm; }
+        .issuance-info { width: 35%; text-align: left; }
+        .signature-area { width: 30%; text-align: center; }
+        .verification-area { width: 35%; text-align: right; }
 
-        .institution-name {
-            font-size: 20pt;
-            font-weight: 700;
-            color: ' . $brandPrimary . ';
-            margin: 5px 0;
-        }
+        .info-item { margin-bottom: 2mm; font-size: 9pt; }
+        .info-label { font-weight: bold; color: '.$brandPrimary.'; display: inline-block; width: 30mm; }
 
-        .department-name {
-            font-size: 11pt;
-            color: #666;
-            margin-top: 5px;
-        }
+        .signature-line { width: 60mm; height: 1.5px; background: #000; margin: 0 auto 3mm; position: relative; }
+        .official-signature { font-size: 11pt; font-weight: bold; margin-bottom: 1mm; }
+        .official-position { font-size: 9pt; color: #666; line-height: 1.2; }
 
-        /* Certificate Title */
-        .certificate-title-section {
-            text-align: center;
-            margin: 30px 0 40px;
-        }
+        .verification-box { display: inline-block; text-align: center; padding: 3mm; border: 1px solid '.$brandPrimary.'; border-radius: 2mm; background: #f8f9fa; }
+        .qr-placeholder { width: 55px; height: 55px; border: 1px solid #ddd; margin: 0 auto 2mm; display: flex; align-items: center; justify-content: center; font-size: 7pt; color: #666; background: #fff; }
+        .verification-code { font-family: monospace; font-size: 9pt; font-weight: bold; color: '.$brandPrimary.'; }
 
-        .certificate-label {
-            font-size: 10pt;
-            letter-spacing: 4px;
-            color: #777;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-
-        .certificate-main-title {
-            font-family: "Times New Roman", serif;
-            font-size: 36pt;
-            font-weight: 700;
-            color: ' . $brandPrimary . ';
-            margin: 10px 0;
-            position: relative;
-            display: inline-block;
-            padding: 0 40px;
-        }
-
-        .certificate-main-title:before,
-        .certificate-main-title:after {
-            content: "✧";
-            position: absolute;
-            top: 50%;
-            color: ' . $brandGold . ';
-            font-size: 20pt;
-        }
-
-        .certificate-main-title:before { left: 0; }
-        .certificate-main-title:after { right: 0; }
-
-        /* Recipient Section */
-        .recipient-section {
-            text-align: center;
-            margin: 40px 60px;
-        }
-
-        .statement-text {
-            font-size: 13pt;
-            color: #555;
-            margin-bottom: 25px;
-        }
-
-        .recipient-name {
-            font-family: "Times New Roman", serif;
-            font-size: 28pt;
-            font-weight: 700;
-            color: #000;
-            padding: 20px;
-            margin: 15px 0;
-            border-bottom: 2px solid ' . $brandGold . ';
-            display: inline-block;
-        }
-
-        /* Service Section */
-        .service-section {
-            text-align: center;
-            margin: 40px 60px;
-        }
-
-        .service-name-box {
-            display: inline-block;
-            padding: 15px 30px;
-            background: ' . $brandPrimary . ';
-            color: white;
-            font-size: 15pt;
-            font-weight: 600;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-
-        /* Footer */
-        .footer-section {
-            position: absolute;
-            bottom: 50px;
-            left: 60px;
-            right: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        /* Left Column */
-        .footer-column {
-            flex: 1;
-        }
-
-        .metadata-box {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            border-left: 3px solid ' . $brandPrimary . ';
-        }
-
-        .metadata-item {
-            margin-bottom: 8px;
-            font-size: 10pt;
-            color: #555;
-        }
-
-        .metadata-label {
-            font-weight: 600;
-            color: ' . $brandPrimary . ';
-            display: inline-block;
-            width: 70px;
-        }
-
-        /* Center Column */
-        .signature-column {
-            text-align: center;
-            padding: 0 20px;
-        }
-
-        .signature-area {
-            padding: 15px;
-            min-width: 250px;
-        }
-
-        .signature-line {
-            width: 200px;
-            height: 1px;
-            background: #333;
-            margin: 30px auto 10px;
-        }
-
-        .signature-name {
-            font-size: 12pt;
-            font-weight: 600;
-            color: ' . $brandPrimary . ';
-            margin: 5px 0;
-        }
-
-        .signature-title {
-            font-size: 10pt;
-            color: #666;
-        }
-
-        /* Right Column */
-        .verification-box {
-            background: white;
-            padding: 15px;
-            border-radius: 4px;
-            border: 1px solid #eaeaea;
-            max-width: 200px;
-        }
-
-        .verification-title {
-            font-size: 10pt;
-            font-weight: 600;
-            color: ' . $brandPrimary . ';
-            margin-bottom: 10px;
-        }
-
-        .verification-code {
-            font-family: monospace;
-            font-size: 11pt;
-            font-weight: 600;
-            color: ' . $brandPrimary . ';
-            background: #f8f9fa;
-            padding: 8px;
-            border-radius: 3px;
-            margin: 10px 0;
-            text-align: center;
-        }
-
-        .qr-placeholder {
-            width: 80px;
-            height: 80px;
-            background: #f5f5f5;
-            border: 1px dashed #ddd;
-            margin: 10px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8pt;
-            color: #999;
-        }
-
-        /* Background */
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 100pt;
-            color: rgba(26, 74, 142, 0.03);
-            font-weight: 900;
-            z-index: -1;
-        }
+        .government-stamp { position: absolute; bottom: 12mm; right: 15mm; width: 45mm; height: 45mm; border: 2mm double '.$brandRed.'; border-radius: 50%; display: flex; align-items: center; justify-content: center; transform: rotate(-15deg); opacity: 0.8; z-index: 10; pointer-events: none; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 90pt; color: rgba(26, 74, 142, 0.04); font-weight: bold; z-index: 0; white-space: nowrap; }
     </style>
 </head>
 <body>
-    <div class="certificate-container">
-        <div class="watermark">BRA</div>
-
-        <div class="border-decoration">
+    <div class="certificate">
+        <div class="watermark">BANAADIR OFFICIAL</div>
+        <div class="official-border">
             <div class="inner-border">
-
-                <!-- Header -->
-                <div class="header-section">
-                    ' . ($logoUrl ? '<img src="' . $logoUrl . '" class="logo">' : '') . '
-                    <div class="institution-name">Banaadir Regional Administration</div>
-                    <div class="department-name">Waaxda Dhismo Wadaagga</div>
+                <div class="government-seal">
+                    <div class="national-emblem">★</div>
+                    <div class="republic-title">JAMHUURIYADDA FEDERAALKA SOOMAALIYA</div>
+                    <div class="region-title">DOWLADA GOBOLKA BANAADIR</div>
                 </div>
 
-                <!-- Certificate Title -->
-                <div class="certificate-title-section">
-                    <div class="certificate-label">Certificate of Service</div>
-                    <div class="certificate-main-title">SHAHADADA ADEEGGA</div>
+                <div class="certificate-header">
+                    <div class="certificate-title">SHAHADADA RASMIGA AH EE ADEEGGA</div>
+                    <div class="certificate-subtitle">(Official Certificate of Service)</div>
                 </div>
 
-                <!-- Recipient -->
-                <div class="recipient-section">
-                    <div class="statement-text">
-                        Waxaa lagu aqoonsaday in:
+                <div class="content-area">
+                    <div class="official-statement">
+                        Dowlada Gobolka Banaadir, iyadoo ku salaysan sharciga iyo dastuurka Jamhuuriyadda Federaalka Soomaaliya, ayaa ansixisay in magaca hoos ku qoran uu si buuxda u dhamaystiray adeegga loo dhigay.
                     </div>
-
-                    <div class="recipient-name">' . $recipientName . '</div>
-
-                    <div class="statement-text">
-                        uu dhammeystiray adeegga:
-                    </div>
+                    <div class="recipient-name">'.$recipientName.'</div>
+                    <div class="service-name">'.$serviceName.'</div>
                 </div>
 
-                <!-- Service -->
-                <div class="service-section">
-                    <div class="service-name-box">' . $serviceName . '</div>
-                </div>
-
-                <!-- Footer -->
-                <div class="footer-section">
-                    <!-- Left Column -->
-                    <div class="footer-column">
-                        <div class="metadata-box">
-                            <div class="metadata-item">
-                                <span class="metadata-label">Taariikh:</span> ' . $issuedDate . '
-                            </div>
-                            <div class="metadata-item">
-                                <span class="metadata-label">Lambarka:</span> ' . $uid . '
-                            </div>
-                            <div class="metadata-item">
-                                <span class="metadata-label">Goobta:</span> Muqdisho
-                            </div>
-                        </div>
+                <div class="official-footer">
+                    <div class="issuance-info">
+                        <div class="info-item"><span class="info-label">Generated by:</span> '.$officerName.'</div>
+                        <div class="info-item"><span class="info-label">Taariikhda:</span> '.$issuedDate.'</div>
+                        <div class="info-item"><span class="info-label">Goobta:</span> Muqdisho, Banaadir</div>
+                        <div class="info-item"><span class="info-label">Bixiyay:</span> Waaxda Dhismo Wadaagga</div>
                     </div>
 
-                    <!-- Center Column -->
-                    <div class="footer-column signature-column">
-                        <div class="signature-area">
-                            <div class="signature-line"></div>
-                            <div class="signature-name">' . $officerName . '</div>
-                            <div class="signature-title">
-                                Agaasimaha Waaxda<br>
-                                Banaadir Regional Admin
-                            </div>
-                        </div>
-                    </div>
+        
 
-                    <!-- Right Column -->
-                    <div class="footer-column">
-                        <div class="verification-box">
-                            <div class="verification-title">VERIFICATION</div>
-                            <div class="verification-code">' . $verifyCode . '</div>
-                            <div class="qr-placeholder">
-                                SCAN QR
-                            </div>
-                        </div>
+                    <div class="verification-area">
+
                     </div>
                 </div>
 
+                <div class="government-stamp">
+                    <div style="text-align: center; color: '.$brandPrimary.'; font-weight: bold; font-size: 8pt;">
+                        <div style="font-size: 14pt; color: '.$brandRed.'">★</div>
+                        <div>RASMI AH</div>
+                        <div>GUDOOMIYE</div>
+                        <div>BANAADIR</div>
+                        <div>'.date("Y").'</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </body>
 </html>';
 
-        // PDF Configuration
-        Pdf::setOptions([
+    // Final clean-up of any question marks that might have sneaked into the HTML string
+    $html = str_replace('?', '', $html);
+
+    $pdf = Pdf::loadHTML($html)
+        ->setPaper('a4', 'landscape')
+        ->setOptions([
             'dpi' => 300,
             'isRemoteEnabled' => true,
-            'defaultFont' => 'sans-serif',
-            'isFontSubsettingEnabled' => true,
+            'defaultFont' => 'dejavu sans'
         ]);
 
-        $pdf = Pdf::loadHTML($html)
-            ->setPaper('a4', 'landscape');
-
-        $safeName = preg_replace('/[^\w\-]+/', '_', $recipientName);
-        $filename = "BRA_Certificate_" . $safeName . ".pdf";
-
-        return $pdf->download($filename);
-    }
-
+    $safeName = preg_replace('/[^\w\-\.]+/', '_', str_replace('?', '', $recipientName));
+    return $pdf->download('Certificate_' . $safeName . '.pdf');
+}
 
     public function template(Service $service)
     {

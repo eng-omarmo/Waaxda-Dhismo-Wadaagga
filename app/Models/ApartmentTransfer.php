@@ -20,14 +20,36 @@ class ApartmentTransfer extends Model
         'transfer_date',
         'supporting_documents_path',
         'approval_status',
+        'owner_profile_previous_id',
+        'owner_profile_new_id',
+        'approved_by_admin_id',
+        'approved_at',
+        'approval_reason',
+        'digital_signature_svg',
+        'notarized_at',
+        'tax_clearance_code',
+        'lien_check_status',
+        'deed_pdf_path',
     ];
 
     protected $casts = [
         'transfer_date' => 'date',
+        'approved_at' => 'datetime',
+        'notarized_at' => 'datetime',
     ];
 
     public function apartment()
     {
         return $this->belongsTo(Apartment::class, 'apartment_number');
+    }
+
+    public function previousOwner()
+    {
+        return $this->belongsTo(OwnerProfile::class, 'owner_profile_previous_id');
+    }
+
+    public function newOwner()
+    {
+        return $this->belongsTo(OwnerProfile::class, 'owner_profile_new_id');
     }
 }

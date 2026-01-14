@@ -35,6 +35,9 @@ class ApartmentController extends Controller
             'contact_phone' => 'required|string|max:50',
             'contact_email' => 'required|email|max:255',
             'notes' => 'nullable|string',
+            'owner_full_name' => 'nullable|string|max:255',
+            'owner_national_id' => 'nullable|string|max:64',
+            'owner_contact_phone' => 'nullable|string|max:50',
             'units.*.unit_number' => 'required|string|max:255',
             'units.*.unit_type' => 'required|string|max:255',
             'units.*.square_footage' => 'required|integer|min:0',
@@ -50,6 +53,24 @@ class ApartmentController extends Controller
             'name', 'address_city',
             'contact_name', 'contact_phone', 'contact_email', 'notes',
         ]));
+
+        if ($request->filled('owner_national_id')) {
+            $owner = \App\Models\OwnerProfile::firstOrCreate(
+                ['national_id' => $request->owner_national_id],
+                [
+                    'full_name' => $request->owner_full_name ?: $request->contact_name,
+                    'contact_phone' => $request->owner_contact_phone ?: $request->contact_phone,
+                ]
+            );
+            $apartment->owner_profile_id = $owner->id;
+            $apartment->save();
+            \App\Models\OwnershipHistory::create([
+                'apartment_id' => $apartment->id,
+                'owner_profile_id' => $owner->id,
+                'started_at' => now()->toDateString(),
+                'recorded_by_admin_id' => auth()->id(),
+            ]);
+        }
 
         if ($request->has('units')) {
             foreach ($request->units as $unitData) {
@@ -83,6 +104,9 @@ class ApartmentController extends Controller
             'contact_phone' => 'required|string|max:50',
             'contact_email' => 'required|email|max:255',
             'notes' => 'nullable|string',
+            'owner_full_name' => 'nullable|string|max:255',
+            'owner_national_id' => 'nullable|string|max:64',
+            'owner_contact_phone' => 'nullable|string|max:50',
             'units.*.unit_number' => 'required|string|max:255',
             'units.*.unit_type' => 'required|string|max:255',
             'units.*.square_footage' => 'required|integer|min:0',
@@ -98,6 +122,30 @@ class ApartmentController extends Controller
             'name', 'address_street',
             'contact_name', 'contact_phone', 'contact_email', 'notes',
         ]));
+
+        if ($request->filled('owner_national_id')) {
+            $owner = \App\Models\OwnerProfile::firstOrCreate(
+                ['national_id' => $request->owner_national_id],
+                [
+                    'full_name' => $request->owner_full_name ?: $request->contact_name,
+                    'contact_phone' => $request->owner_contact_phone ?: $request->contact_phone,
+                ]
+            );
+            if ($apartment->owner_profile_id !== $owner->id) {
+                \App\Models\OwnershipHistory::where('apartment_id', $apartment->id)
+                    ->whereNull('ended_at')
+                    ->latest()
+                    ->first()?->update(['ended_at' => now()->toDateString()]);
+                $apartment->owner_profile_id = $owner->id;
+                $apartment->save();
+                \App\Models\OwnershipHistory::create([
+                    'apartment_id' => $apartment->id,
+                    'owner_profile_id' => $owner->id,
+                    'started_at' => now()->toDateString(),
+                    'recorded_by_admin_id' => auth()->id(),
+                ]);
+            }
+        }
 
         // Sync units
         $existingUnitIds = $apartment->units->pluck('id')->toArray();
