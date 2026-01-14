@@ -13,10 +13,11 @@ class ApartmentController extends Controller
         $query = Apartment::withCount('units')->latest();
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         $apartments = $query->paginate(10);
+
         return view('admin.apartments.index', compact('apartments'));
     }
 
@@ -47,7 +48,7 @@ class ApartmentController extends Controller
 
         $apartment = Apartment::create($request->only([
             'name', 'address_city',
-            'contact_name', 'contact_phone', 'contact_email', 'notes'
+            'contact_name', 'contact_phone', 'contact_email', 'notes',
         ]));
 
         if ($request->has('units')) {
@@ -62,12 +63,14 @@ class ApartmentController extends Controller
     public function show(Apartment $apartment)
     {
         $apartment->load('units');
+
         return view('admin.apartments.show', compact('apartment'));
     }
 
     public function edit(Apartment $apartment)
     {
         $apartment->load('units');
+
         return view('admin.apartments.edit', compact('apartment'));
     }
 
@@ -93,7 +96,7 @@ class ApartmentController extends Controller
 
         $apartment->update($request->only([
             'name', 'address_street',
-            'contact_name', 'contact_phone', 'contact_email', 'notes'
+            'contact_name', 'contact_phone', 'contact_email', 'notes',
         ]));
 
         // Sync units
@@ -124,6 +127,7 @@ class ApartmentController extends Controller
     public function destroy(Apartment $apartment)
     {
         $apartment->delete();
+
         return redirect()->route('admin.apartments.index')->with('success', 'Apartment deleted successfully.');
     }
 }

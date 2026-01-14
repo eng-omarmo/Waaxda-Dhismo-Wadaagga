@@ -12,7 +12,7 @@ class Service extends Model
         'description',
         'price',
         'icon_color', // Use underscores for database column naming conventions
-        'icon_class'
+        'icon_class',
     ];
 
     protected $casts = [
@@ -25,7 +25,7 @@ class Service extends Model
     public function getIconColor()
     {
         // 1. Check if a specific color is stored in the database
-        if (!empty($this->icon_color)) {
+        if (! empty($this->icon_color)) {
             return $this->icon_color;
         }
 

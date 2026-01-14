@@ -20,4 +20,3 @@ class OrganizationDocument extends Model
         return $this->belongsTo(Organization::class);
     }
 }
-

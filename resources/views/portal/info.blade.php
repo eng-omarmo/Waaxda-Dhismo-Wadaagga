@@ -43,18 +43,6 @@
                   <label class="form-label">National ID (optional)</label>
                   <input name="national_id" type="text" class="form-control" value="{{ old('national_id', data_get($reg->data,'national_id')) }}">
                 </div>
-                @if($isPermit)
-                <hr>
-                <div class="mb-3">
-                  <label class="form-label">Create Account Password</label>
-                  <input name="password" type="password" class="form-control" autocomplete="new-password">
-                  <div class="form-text">Minimum 12 characters, include upper/lowercase, numbers and symbols.</div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Confirm Password</label>
-                  <input name="password_confirmation" type="password" class="form-control" autocomplete="new-password">
-                </div>
-                @endif
                 <div class="d-flex justify-content-between">
                   <a href="{{ route('portal.start') }}" class="btn btn-outline-secondary">Back</a>
                   <button class="btn btn-primary">Continue</button>

@@ -1,15 +1,15 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminUserController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProjectRegistrationController;
-use App\Http\Controllers\ServiceTrackingController;
-use App\Http\Controllers\OrganizationRegistrationController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BusinessLicenseController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\OrganizationRegistrationController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceTrackingController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('landing.page.index');
 
@@ -72,6 +72,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
+Route::get('/certificates/verify/{uid}', function ($uid) {
+    $certificate = Certificate::where('certificate_uid', $uid)->first();
+
+    if (!$certificate) {
+        return view('certificates.not-found', ['uid' => $uid]);
+    }
+
+    return view('certificates.verify', compact('certificate'));
+})->name('certificates.verify');
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
@@ -109,7 +118,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/licensing/{license}/reject', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'reject'])->name('licensing.reject');
     Route::put('/licensing/{license}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'update'])->name('licensing.update');
     Route::get('/licensing/{license}/documents/{docId}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'downloadDoc'])->name('licensing.documents.download');
-    //add issue licence
+    // add issue licence
     Route::get('/new-business-license', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'displayIssuePage'])->name('licensing.issue');
     Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
     Route::get('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'index'])->name('apartment-transfers.index');
@@ -125,6 +134,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/certificates/create', [\App\Http\Controllers\CertificateController::class, 'create'])->name('certificates.create');
     Route::get('/certificates/{certificate}', [\App\Http\Controllers\CertificateController::class, 'show'])->whereNumber('certificate')->name('certificates.show');
     Route::post('/certificates', [\App\Http\Controllers\CertificateController::class, 'store'])->name('certificates.store');
+    Route::post('/certificates/generate-phone', [\App\Http\Controllers\CertificateController::class, 'generateFromPhone'])->name('certificates.generate_phone');
     Route::get('/certificates/templates/{service}', [\App\Http\Controllers\CertificateController::class, 'template'])->name('certificates.template');
     Route::get('/certificates/{certificate}/download', [\App\Http\Controllers\CertificateController::class, 'download'])->name('certificates.download');
 
@@ -140,6 +150,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             'target_id' => 'bulk',
             'details' => ['updated_count' => $updated],
         ]);
+
         return redirect()->route('admin.reports')->with('status', "Synchronized {$updated} payment(s)");
     })->name('payments.sync');
 
@@ -151,6 +162,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/manual-requests/{manual_request}/payments/{payment}/reconcile', [\App\Http\Controllers\AdminManualRequestController::class, 'reconcile'])->name('manual-requests.reconcile');
     Route::post('/manual-requests/{manual_request}/reject', [\App\Http\Controllers\AdminManualRequestController::class, 'reject'])->name('manual-requests.reject');
     Route::get('/manual-requests/{manual_request}/payments/{payment}/receipt', [\App\Http\Controllers\AdminManualRequestController::class, 'receipt'])->name('manual-requests.receipt');
+    Route::post('/manual-requests/{manual_request}/generate-certificate', [\App\Http\Controllers\AdminManualRequestController::class, 'generateCertificate'])->name('manual-requests.generateCertificate');
 });
 
 Route::get('/receipt/{payment}', [\App\Http\Controllers\AdminManualRequestController::class, 'publicReceipt'])->middleware('signed')->name('receipt.show');

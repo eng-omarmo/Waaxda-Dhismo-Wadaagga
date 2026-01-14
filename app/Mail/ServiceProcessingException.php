@@ -12,6 +12,7 @@ class ServiceProcessingException extends Mailable
     use Queueable, SerializesModels;
 
     public ServiceRequest $request;
+
     public string $messageText;
 
     public function __construct(ServiceRequest $request, string $messageText)

@@ -6,7 +6,6 @@ use App\Models\Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class SelfServiceServiceIdTest extends TestCase
@@ -18,14 +17,14 @@ class SelfServiceServiceIdTest extends TestCase
         parent::setUp();
         Config::set('database.default', 'sqlite');
         $path = base_path('database/database.sqlite');
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             @mkdir(dirname($path), 0777, true);
             @touch($path);
         }
         Config::set('database.connections.sqlite.database', $path);
     }
 
-    public function test_start_with_valid_serviceId_redirects_to_info(): void
+    public function test_start_with_valid_service_id_redirects_to_info(): void
     {
         $service = Service::create([
             'name' => 'Test Service',
@@ -41,20 +40,20 @@ class SelfServiceServiceIdTest extends TestCase
         $response->assertRedirect('/portal/info');
     }
 
-    public function test_start_with_missing_serviceId_renders_select_service(): void
+    public function test_start_with_missing_service_id_renders_select_service(): void
     {
         $response = $this->get('/portal');
         $response->assertStatus(200);
         $response->assertSee('Choose a service');
     }
 
-    public function test_start_with_malformed_serviceId_returns_400(): void
+    public function test_start_with_malformed_service_id_returns_400(): void
     {
         $response = $this->get('/portal?serviceId=abc');
         $response->assertStatus(400);
     }
 
-    public function test_store_with_valid_serviceId_redirects_to_info(): void
+    public function test_store_with_valid_service_id_redirects_to_info(): void
     {
         $service = Service::create([
             'name' => 'Test Service 2',
@@ -70,19 +69,19 @@ class SelfServiceServiceIdTest extends TestCase
         $response->assertRedirect('/portal/info');
     }
 
-    public function test_store_with_missing_serviceId_returns_400(): void
+    public function test_store_with_missing_service_id_returns_400(): void
     {
         $response = $this->post('/portal/service', []);
         $response->assertStatus(400);
     }
 
-    public function test_store_with_malformed_serviceId_returns_400(): void
+    public function test_store_with_malformed_service_id_returns_400(): void
     {
         $response = $this->post('/portal/service', ['serviceId' => 'xyz']);
         $response->assertStatus(400);
     }
 
-    public function test_pay_requires_serviceId_when_registration_missing_service(): void
+    public function test_pay_requires_service_id_when_registration_missing_service(): void
     {
         $reg = \App\Models\PendingRegistration::create([
             'full_name' => 'Test User',
@@ -97,7 +96,7 @@ class SelfServiceServiceIdTest extends TestCase
         $response->assertStatus(400);
     }
 
-    public function test_pay_with_serviceId_sets_registration_and_renders(): void
+    public function test_pay_with_service_id_sets_registration_and_renders(): void
     {
         $service = Service::create([
             'name' => 'Pay Service',

@@ -6,19 +6,16 @@ use App\Mail\SelfServiceConfirmation;
 use App\Models\OnlinePayment;
 use App\Models\PendingRegistration;
 use App\Models\PendingRegistrationDocument;
-use App\Models\Project;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class SelfServiceController extends Controller
 {
@@ -26,7 +23,7 @@ class SelfServiceController extends Controller
     {
         $serviceIdParam = request()->query('serviceId', request()->query('service'));
         if ($serviceIdParam !== null) {
-            if (!is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
+            if (! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
                 Log::warning('Invalid serviceId format', [
                     'endpoint' => 'portal.start',
                     'serviceId' => $serviceIdParam,
@@ -36,7 +33,7 @@ class SelfServiceController extends Controller
                 throw new HttpResponseException(response('Invalid serviceId', 400));
             }
             $service = Service::find((int) $serviceIdParam);
-            if (!$service) {
+            if (! $service) {
                 Log::warning('Service not found for serviceId', [
                     'endpoint' => 'portal.start',
                     'serviceId' => (int) $serviceIdParam,
@@ -57,16 +54,18 @@ class SelfServiceController extends Controller
                 'data' => [],
             ]);
             request()->session()->put('portal_reg_id', $reg->id);
+
             return redirect()->route('portal.info');
         }
         $services = Service::orderBy('name')->get();
+
         return view('portal.select-service', compact('services'));
     }
 
     public function storeService(Request $request)
     {
         $serviceIdParam = $request->input('serviceId', $request->input('service_id'));
-        if (!$serviceIdParam || !is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
+        if (! $serviceIdParam || ! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
             Log::warning('Invalid or missing serviceId in storeService', [
                 'endpoint' => 'portal.service.store',
                 'serviceId' => $serviceIdParam,
@@ -76,7 +75,7 @@ class SelfServiceController extends Controller
             throw new HttpResponseException(response('Invalid serviceId', 400));
         }
         $service = Service::find((int) $serviceIdParam);
-        if (!$service) {
+        if (! $service) {
             Log::warning('Service not found in storeService', [
                 'endpoint' => 'portal.service.store',
                 'serviceId' => (int) $serviceIdParam,
@@ -97,12 +96,14 @@ class SelfServiceController extends Controller
             'data' => [],
         ]);
         $request->session()->put('portal_reg_id', $reg->id);
+
         return redirect()->route('portal.info');
     }
 
     public function info(Request $request)
     {
         $reg = $this->current($request);
+
         return view('portal.info', compact('reg'));
     }
 
@@ -114,15 +115,11 @@ class SelfServiceController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'national_id' => ['nullable', 'string', 'max:255'],
-            'password' => [$reg->service_slug === 'construction-permit-application' ? 'required' : 'nullable', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
         ], [
             //
         ]);
         $data = $reg->data ?: [];
         $data['national_id'] = $validated['national_id'] ?? null;
-        if ($request->filled('password')) {
-            $data['password_plain'] = $validated['password'];
-        }
         $reg->update([
             'full_name' => $validated['full_name'],
             'email' => $validated['email'],
@@ -130,6 +127,7 @@ class SelfServiceController extends Controller
             'data' => $data,
             'step' => 5,
         ]);
+
         return redirect()->route('portal.pay');
     }
 
@@ -139,6 +137,7 @@ class SelfServiceController extends Controller
         if ($reg->service_slug === 'project-registration' || $reg->service_slug === 'construction-permit-application') {
             return view('portal.details-project', compact('reg'));
         }
+
         return redirect()->route('portal.docs');
     }
 
@@ -155,6 +154,7 @@ class SelfServiceController extends Controller
             $data['location_text'] = $validated['location_text'];
             $reg->update(['data' => $data, 'step' => 4]);
         }
+
         return redirect()->route('portal.docs');
     }
 
@@ -162,6 +162,7 @@ class SelfServiceController extends Controller
     {
         $reg = $this->current($request);
         $docs = PendingRegistrationDocument::where('pending_registration_id', $reg->id)->latest()->get();
+
         return view('portal.docs', compact('reg', 'docs'));
     }
 
@@ -183,6 +184,7 @@ class SelfServiceController extends Controller
             }
         }
         $reg->update(['step' => 5]);
+
         return redirect()->route('portal.pay');
     }
 
@@ -190,9 +192,9 @@ class SelfServiceController extends Controller
     {
 
         $reg = $this->current($request);
-        if (!$reg->service_id) {
+        if (! $reg->service_id) {
             $serviceIdParam = $request->input('serviceId', $request->query('serviceId', $request->query('service')));
-            if (!$serviceIdParam || !is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
+            if (! $serviceIdParam || ! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
                 Log::warning('Missing or invalid serviceId before pay', [
                     'endpoint' => 'portal.pay',
                     'serviceId' => $serviceIdParam,
@@ -203,7 +205,7 @@ class SelfServiceController extends Controller
                 throw new HttpResponseException(response('Missing or invalid serviceId', 400));
             }
             $service = Service::find((int) $serviceIdParam);
-            if (!$service) {
+            if (! $service) {
                 Log::warning('Service not found before pay', [
                     'endpoint' => 'portal.pay',
                     'serviceId' => (int) $serviceIdParam,
@@ -219,6 +221,7 @@ class SelfServiceController extends Controller
             ]);
         }
         $service = Service::findOrFail($reg->service_id);
+
         return view('portal.pay', ['reg' => $reg, 'service' => $service]);
     }
 
@@ -289,7 +292,7 @@ class SelfServiceController extends Controller
                 ],
             ]
         );
-        if (!$sr->wasRecentlyCreated) {
+        if (! $sr->wasRecentlyCreated) {
             $sr->request_details = array_merge((array) $sr->request_details, [
                 'online_payment_id' => $payment->id,
                 'transaction_id' => $payment->transaction_id,
@@ -329,6 +332,7 @@ class SelfServiceController extends Controller
         if (isset($map[$reg->service_slug])) {
             return redirect()->route($map[$reg->service_slug]);
         }
+
         return redirect()->route('portal.details');
     }
 
@@ -337,6 +341,7 @@ class SelfServiceController extends Controller
         $reg = $this->current($request);
         $payment = OnlinePayment::where('pending_registration_id', $reg->id)->latest()->firstOrFail();
         $service = Service::findOrFail($reg->service_id);
+
         return view('portal.receipt', compact('reg', 'payment', 'service'));
     }
 
@@ -344,6 +349,7 @@ class SelfServiceController extends Controller
     {
         $reg = PendingRegistration::findOrFail($payment->pending_registration_id);
         $service = Service::findOrFail($reg->service_id);
+
         return view('portal.receipt-public', compact('reg', 'payment', 'service'));
     }
 
@@ -351,23 +357,26 @@ class SelfServiceController extends Controller
     {
         $reg = PendingRegistration::where('resume_token', $token)->firstOrFail();
         $request->session()->put('portal_reg_id', $reg->id);
+
         return redirect()->route('portal.info');
     }
 
     private function current(Request $request): PendingRegistration
     {
         $id = $request->session()->get('portal_reg_id');
-        if (!$id) {
+        if (! $id) {
             $token = (string) $request->query('token', '');
             if ($token !== '') {
                 $reg = PendingRegistration::where('resume_token', $token)->first();
                 if ($reg) {
                     $request->session()->put('portal_reg_id', $reg->id);
+
                     return $reg;
                 }
             }
             throw new HttpResponseException(redirect()->route('portal.start'));
         }
+
         return PendingRegistration::findOrFail($id);
     }
 }

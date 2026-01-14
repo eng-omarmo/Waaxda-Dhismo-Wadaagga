@@ -2,21 +2,25 @@
 
 namespace App\Models;
 
+use App\Support\StandardIdentifier;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Str;
-use App\Support\StandardIdentifier;
 
 class Certificate extends Model
 {
     protected $fillable = [
-        'project_id',
+        'receiver_id',
+        'receiver_type',
         'service_id',
         'certificate_number',
         'certificate_uid',
         'issued_at',
         'issued_by',
+        'issued_to',
         'certificate_hash',
+        'status',
         'metadata',
     ];
 
@@ -25,9 +29,9 @@ class Certificate extends Model
         'metadata' => 'array',
     ];
 
-    public function project(): BelongsTo
+    public function receiver(): MorphTo
     {
-        return $this->belongsTo(Project::class, 'project_id');
+        return $this->morphTo();
     }
 
     public function service(): BelongsTo
@@ -35,36 +39,33 @@ class Certificate extends Model
         return $this->belongsTo(Service::class);
     }
 
-    public static function issueForProject(Project $project, ?Service $service, ?int $issuedBy = null): Certificate
+    public static function issueForProject(?Service $service, ?int $issuedBy = null): Certificate
     {
-        $existing = self::where('project_id', $project->id)
-            ->where('service_id', optional($service)->id)
-            ->first();
-        if ($existing) {
-            return $existing;
-        }
+
         $uid = (string) Str::uuid();
-        $number = 'IPAMS-COC-'.date('Y').'-'.substr($project->id, 0, 8).'-'.(string) optional($service)->id;
-        $standardId = StandardIdentifier::normalize('project', $project->id);
+        $number = 'IPAMS-COC-'.date('Y').'-'.substr($uid, 0, 8).'-'.(string) optional($service)->id.'-'.substr($uid, 0, 8);
+        $standardId = StandardIdentifier::normalize('project', $uid);
         $hash = hash('sha256', implode('|', [
             $uid,
             $number,
-            $project->id,
+
             (string) optional($service)->id,
-            $project->created_at?->toDateTimeString() ?? '',
+            $uid,
             $standardId,
         ]));
+
         return self::create([
-            'project_id' => $project->id,
+            'receiver_type' => $service->name,
+            'receiver_id' => $uid,
             'service_id' => optional($service)->id,
             'certificate_number' => $number,
             'certificate_uid' => $uid,
             'issued_at' => now(),
             'issued_by' => $issuedBy,
+            'issued_to' => $service->name,
             'certificate_hash' => $hash,
+            'status' => 'draft',
             'metadata' => [
-                'design_version' => 'v1',
-                'format' => 'clearance',
                 'standardized_id' => $standardId,
             ],
         ]);

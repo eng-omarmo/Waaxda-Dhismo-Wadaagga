@@ -2,24 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Apartment;
+use App\Models\BusinessLicense;
 use App\Models\Certificate;
 use App\Models\CertificateTemplate;
 use App\Models\ManualOperationLog;
+use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Service;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use App\Models\ServiceRequest;
 use App\Support\StandardIdentifier;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class CertificateController extends Controller
 {
     public function index(Request $request)
     {
-        $certs = Certificate::with(['project', 'service'])->latest()->paginate(10)->withQueryString();
+        $certs = Certificate::with(['receiver', 'service'])->latest()->paginate(10)->withQueryString();
+
         return view('admin.certificates.index', compact('certs'));
     }
 
@@ -46,20 +53,20 @@ class CertificateController extends Controller
         $service = Service::findOrFail($request->service_id);
         $project = Project::findOrFail($request->project_id);
 
-        if ($request->filled('identifier_type') && !StandardIdentifier::validateType($request->identifier_type)) {
+        if ($request->filled('identifier_type') && ! StandardIdentifier::validateType($request->identifier_type)) {
             return back()->withErrors(['identifier_type' => 'Unsupported identifier type'])->withInput();
         }
-        if ($request->filled('identifier_type') && !$request->filled('identifier_value')) {
+        if ($request->filled('identifier_type') && ! $request->filled('identifier_value')) {
             return back()->withErrors(['identifier_value' => 'Identifier value is required'])->withInput();
         }
-        if ($request->filled('identifier_type') && !StandardIdentifier::validate($request->identifier_type, $request->identifier_value)) {
+        if ($request->filled('identifier_type') && ! StandardIdentifier::validate($request->identifier_type, $request->identifier_value)) {
             return back()->withErrors(['identifier_value' => 'Invalid identifier format'])->withInput();
         }
         if (StandardIdentifier::conflict($project->id, $request->identifier_type, $request->identifier_value)) {
             return back()->withErrors(['identifier_value' => 'Conflicting identifier: project ID mismatch'])->withInput();
         }
         $standardId = StandardIdentifier::compute($project->id, $request->identifier_type, $request->identifier_value);
-        if (!$standardId) {
+        if (! $standardId) {
             return back()->withErrors(['identifier_value' => 'Missing required identifier'])->withInput();
         }
 
@@ -88,7 +95,8 @@ class CertificateController extends Controller
         ]));
 
         $certificate = Certificate::create([
-            'project_id' => $project->id,
+            'receiver_type' => 'test',
+            'receiver_id' => $project->id,
             'service_id' => $service->id,
             'certificate_number' => $number,
             'certificate_uid' => $uid,
@@ -104,7 +112,7 @@ class CertificateController extends Controller
             ],
         ]);
 
-        $html = ($template?->html_template) ?: '<div class="p-4"><div class="d-flex align-items-center mb-3"><h4 class="mb-0">{{title}}</h4></div><div>Service: {{service}}</div><div>Project: {{project}}</div><div>Date: {{date}}</div><div>UID: {{uid}}</div><div>Standardized ID: {{standardized_id}}</div><hr><div><strong>Details</strong></div></div>';
+        $html = ($template?->html_template) ?: '<!-- Production-ready Certificate Template: Default Fallback --><div style="font-family:Arial,sans-serif;color:#222"><style>@page{size:A4;margin:20mm} .wrap{border:6px solid #0a5ad1;padding:24px} .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px} .logo{width:64px;height:64px;object-fit:contain} .svc{font-size:12pt;color:#555} .title{font-size:28pt;font-weight:700;text-align:center;color:#0a5ad1;margin:12px 0 4px} .subtitle{text-align:center;font-size:11pt;color:#666;margin-bottom:16px} .recipient{font-size:18pt;font-weight:600;text-align:center;margin:18px 0 8px} .achievement{text-align:center;font-size:12pt;color:#333;margin-bottom:16px} .description{font-size:12pt;line-height:1.6;margin:12px 0 18px} .details{margin-top:8px} .signatures{display:flex;gap:24px;justify-content:space-between;margin-top:24px} .sig{flex:1;text-align:center} .sig .line{border-top:1px solid #999;margin-top:40px;padding-top:8px} .footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:10pt;color:#555} .badge{border:1px solid #0a5ad1;padding:4px 8px;border-radius:4px} </style><!-- Header: service and logo --><div class="wrap" style="border-color: {{brand_primary}}"><div class="header"><div class="svc">{{service}}</div><img class="logo" src="{{logo_url}}" alt="Logo"/></div><!-- Title and organization --><div class="title" style="color: {{brand_primary}}">{{title}}</div><div class="subtitle">{{organization_name}}</div><!-- Recipient section --><div class="recipient">{{recipient_name}}</div><div class="achievement">{{recipient_achievement}}</div><!-- Accomplishment description --><div class="description">{{accomplishment_description}}</div><!-- Optional classification and detailed table from existing logic --><div class="details"><div style="font-weight:600">{{entity_classification}}</div><div>{{entity_details_html}}</div></div><!-- Authorized signatures --><div class="signatures"><div class="sig"><div class="line">{{signature_1_name}}</div><div>{{signature_1_title}}</div></div><div class="sig"><div class="line">{{signature_2_name}}</div><div>{{signature_2_title}}</div></div></div><!-- Footer: issuance date and UID --><div class="footer"><div>Issued {{date}}</div><div class="badge">UID {{uid}}</div></div><!-- Optional standardized ID and verification --><div style="margin-top:8px;font-size:10pt">ID: {{standardized_id}}</div><div style="display:flex;align-items:center;gap:8px;margin-top:8px"><div>{{qr_svg}}</div><div>Verify: {{verification_link}}</div></div><!-- Officer signature (legacy field) --><div style="margin-top:12px;font-size:10pt">Authorizing Officer: {{officer_signature_name}}</div></div></div>';
         $replacements = [
             '{{title}}' => (string) $request->certificate_title,
             '{{service}}' => (string) $service->name,
@@ -136,95 +144,605 @@ class CertificateController extends Controller
         return redirect()->route('admin.certificates.show', $certificate)->with('status', 'Certificate generated');
     }
 
-    public function download(Certificate $certificate)
+    public function generateFromPhone(Request $request)
     {
-        $project = Project::findOrFail($certificate->project_id);
+        $request->validate([
+            'user_phone' => ['required', 'string', 'max:50'],
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'service_name' => ['nullable', 'string', 'max:100'],
+        ]);
+        $phone = $request->string('user_phone')->toString();
+        $service = null;
+        if ($request->filled('service_id')) {
+            $service = Service::findOrFail($request->service_id);
+        } elseif ($request->filled('service_name')) {
+            $service = Service::where('name', $request->string('service_name')->toString())->first();
+            if (! $service) {
+                return back()->withErrors(['service_name' => 'Unknown service'])->withInput();
+            }
+        } else {
+            return back()->withErrors(['service_id' => 'Service is required'])->withInput();
+        }
+
+        $projects = Project::where('registrant_phone', $phone)->orderBy('created_at', 'desc')->get();
+        $licenses = BusinessLicense::where('registrant_phone', $phone)->orderBy('created_at', 'desc')->get();
+        $apartments = Apartment::where('contact_phone', $phone)->orderBy('created_at', 'desc')->get();
+        $organizations = Organization::where('contact_phone', $phone)->orderBy('created_at', 'desc')->get();
+        $requests = ServiceRequest::where('user_phone', $phone)->with('service')->orderBy('created_at', 'desc')->get();
+
+        $anchorProject = $projects->first();
+        if (! $anchorProject && $licenses->first()?->project_id) {
+            $anchorProject = Project::find($licenses->first()->project_id);
+        }
+        if (! $anchorProject) {
+            return back()->withErrors(['user_phone' => 'No project found for this phone'])->withInput();
+        }
+
+        $classification = match ($service->slug) {
+            'business-license' => 'Business License Registration',
+            'project-registration' => 'Project Registration',
+            'ownership-certificate' => 'Apartment Ownership',
+            'property-transfer-services' => 'Apartment Transfer',
+            'construction-permit-application', 'construction-permit' => 'Apartment Construction Permit',
+            default => 'Other Legal Entity',
+        };
+
+        $license = $licenses->first();
+        $apartment = $apartments->first();
+        $organization = $organizations->first();
+        $serviceReq = $requests->first();
+
+        $detailsRows = [];
+        $detailsRows[] = ['Registration Number', $anchorProject->id];
+        $detailsRows[] = ['Entity Name', $anchorProject->project_name];
+        $detailsRows[] = ['Classification', $classification];
+        if ($license) {
+            $detailsRows[] = ['License ID', $license->id];
+            $detailsRows[] = ['License Type', $license->license_type];
+            $detailsRows[] = ['License Status', ucfirst($license->status)];
+            $detailsRows[] = ['License Expires', $license->expires_at?->toDateString() ?: '—'];
+        }
+        if ($apartment) {
+            $detailsRows[] = ['Apartment Contact', $apartment->contact_name . ' (' . $apartment->contact_phone . ')'];
+            $detailsRows[] = ['Apartment City', $apartment->address_city];
+        }
+        if ($organization) {
+            $detailsRows[] = ['Organization', $organization->name];
+            $detailsRows[] = ['Org Registration', $organization->registration_number ?: '—'];
+        }
+        if ($serviceReq) {
+            $detailsRows[] = ['Service Request', ($serviceReq->service?->name ?? 'Service') . ' • ' . $serviceReq->status];
+        }
+        $entityDetailsHtml = '<table style="width:100%;border-collapse:collapse">';
+        foreach ($detailsRows as $row) {
+            $entityDetailsHtml .= '<tr><td style="padding:6px;border:1px solid #ddd"><strong>' . e($row[0]) . '</strong></td><td style="padding:6px;border:1px solid #ddd">' . e($row[1]) . '</td></tr>';
+        }
+        $entityDetailsHtml .= '</table>';
+
+        $uid = (string) Str::uuid();
+        $number = 'IPAMS-COC-' . date('Y') . '-' . substr($anchorProject->id, 0, 8) . '-' . $service->id . '-' . substr($uid, 0, 8);
+        $standardId = StandardIdentifier::normalize('project', $anchorProject->id);
+        $issuedAt = now()->toDateString();
+        $title = $service->name . ' Certificate';
+        $hash = hash('sha256', implode('|', [
+            $uid,
+            $number,
+            $anchorProject->id,
+            (string) $service->id,
+            (string) $issuedAt,
+            (string) $title,
+            (string) $standardId,
+        ]));
+
+        $certificate = Certificate::create([
+            'receiver_type' => $service->name,
+            'receiver_id' => $anchorProject->id,
+            'service_id' => $service->id,
+            'certificate_number' => $number,
+            'certificate_uid' => $uid,
+            'issued_at' => $issuedAt,
+            'issued_by' => Auth::id(),
+            'certificate_hash' => $hash,
+            'metadata' => [
+                'title' => $title,
+                'fields' => [
+                    'standardized_id' => $standardId,
+                    'entity_classification' => $classification,
+                    'entity_details_html' => $entityDetailsHtml,
+                    'officer_signature_name' => optional(Auth::user())->first_name . ' ' . optional(Auth::user())->last_name,
+                ],
+                'format_options' => ['pdf' => true],
+            ],
+        ]);
+
+        $verificationLink = URL::signedRoute('certificate.public', ['certificate' => $certificate]);
+        $qrSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#fff" stroke="#000"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="8">SCAN</text></svg>';
+
+        $fields = $certificate->metadata['fields'] ?? [];
+        $fields['verification_link'] = $verificationLink;
+        $fields['qr_svg'] = $qrSvg;
+        $certificate->metadata = array_merge($certificate->metadata ?? [], ['fields' => $fields]);
+        $certificate->save();
+
+        $html = '<div class="p-4" style="font-family:Arial,sans-serif"><div class="d-flex align-items-center mb-3"><h3 class="mb-0" style="margin:0;padding:0">' . e($title) . '</h3></div><div class="mb-2">Service: ' . e($service->name) . '</div><div class="mb-2">Date: ' . e($issuedAt) . '</div><div class="mb-2">UID: ' . e($uid) . '</div><div class="mb-2">Standardized ID: ' . e($standardId) . '</div><hr><div class="mb-2"><strong>Entity Classification</strong>: ' . e($classification) . '</div><div class="mb-3"><strong>Details</strong></div>' . $entityDetailsHtml . '<hr><div class="d-flex align-items-center gap-3"><div>' . $qrSvg . '</div><div style="font-size:12px">Verify: ' . e($verificationLink) . '</div></div><div class="mt-3" style="font-size:12px">Authorizing Officer: ' . e($fields['officer_signature_name'] ?? 'Officer') . '</div></div>';
+        $pdfData = Pdf::loadHTML($html)->setPaper('a4')->output();
+        $dir = 'certificates';
+        $filename = $number . '.pdf';
+        $path = $dir . '/' . $filename;
+        Storage::disk('local')->put($path, $pdfData);
+        $certificate->metadata = array_merge($certificate->metadata ?? [], ['archived_pdf_path' => $path, 'verification_link' => $verificationLink]);
+        $certificate->save();
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'generate_certificate_lookup',
+            'target_type' => 'Project',
+            'target_id' => (string) $anchorProject->id,
+            'details' => ['certificate_id' => $certificate->id, 'service_id' => $service->id, 'user_phone' => $phone],
+        ]);
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'notify_sms',
+            'target_type' => 'Certificate',
+            'target_id' => (string) $certificate->id,
+            'details' => ['to' => $phone, 'message' => 'Certificate issued. Link: ' . $verificationLink],
+        ]);
+
+        return redirect()->route('admin.certificates.show', $certificate)->with('status', 'Certificate generated from phone lookup');
+    }
+    public function download(Request $request, Certificate $certificate)
+    {
         $service = optional($certificate->service);
         $meta = $certificate->metadata ?? [];
-        $path = $meta['archived_pdf_path'] ?? null;
-        $exists = $path ? Storage::disk('local')->exists($path) : false;
-        if (!$exists) {
-            $template = null;
-            $slug = $meta['template_slug'] ?? null;
-            if ($slug) {
-                $template = CertificateTemplate::where('template_slug', $slug)->first();
-            }
-            if (!$template && $service?->id) {
-                $template = CertificateTemplate::where('service_id', $service->id)->first();
-            }
-            $html = ($template?->html_template) ?: '<div class="p-4"><div class="d-flex align-items-center mb-3"><h4 class="mb-0">{{title}}</h4></div><div>Service: {{service}}</div><div>Project: {{project}}</div><div>Date: {{date}}</div><div>UID: {{uid}}</div><div>Standardized ID: {{standardized_id}}</div><hr><div><strong>Details</strong></div></div>';
-            $replacements = [
-                '{{title}}' => (string) ($meta['title'] ?? 'Certificate'),
-                '{{service}}' => (string) ($service?->name ?? 'Project Registration'),
-                '{{project}}' => (string) $project->id,
-                '{{date}}' => (string) $certificate->issued_at?->toDateString(),
-                '{{uid}}' => (string) $certificate->certificate_uid,
-                '{{standardized_id}}' => (string) ($meta['fields']['standardized_id'] ?? $meta['standardized_id'] ?? ''),
-            ];
-            $rendered = strtr($html, $replacements);
-            if (is_array($meta['fields'] ?? null)) {
-                foreach ($meta['fields'] as $k => $v) {
-                    $rendered = str_replace('{{' . $k . '}}', (string) $v, $rendered);
-                }
-            }
-            $pdfData = Pdf::loadHTML($rendered)->setPaper('a4')->output();
-            $dir = 'certificates';
-            $filename = $certificate->certificate_number . '.pdf';
-            $path = $dir . '/' . $filename;
-            Storage::disk('local')->put($path, $pdfData);
-            $certificate->metadata = array_merge($meta, ['archived_pdf_path' => $path]);
-            $certificate->save();
+
+        // --- Design Parameters ---
+        $issuedDate = $certificate->issued_at?->format('d/m/Y') ?? now()->format('d/m/Y');
+        $brandPrimary = '#1a4a8e';
+        $brandGold = '#c5a059';
+
+        $logoUrl = (string) ($meta['fields']['logo_url'] ?? $meta['logo_url'] ?? '');
+        $recipientName = mb_strtoupper((string) ($certificate->issued_to ?? $meta['fields']['recipient_name'] ?? '__________________________'));
+        $officerName = (string) ($meta['fields']['officer_signature_name'] ?? $meta['officer_signature_name'] ?? 'Agaasimaha Waaxda');
+        $uid = (string) $certificate->certificate_uid;
+        $serviceName = (string) ($service?->name ?? 'Diiwaangelinta Guriga Dabaqa');
+
+        // Generate verification code
+        $verifyCode = 'BRA-' . substr(strtoupper(md5($uid)), 0, 8);
+
+        $html = '
+<!DOCTYPE html>
+<html lang="so">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 0;
         }
-        return Storage::disk('local')->download($path, $certificate->certificate_number . '.pdf');
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+
+        /* Page Container */
+        .certificate-container {
+            width: 297mm;
+            height: 210mm;
+            position: relative;
+            background: #ffffff;
+        }
+
+        /* Border */
+        .border-decoration {
+            position: absolute;
+            top: 20mm;
+            left: 20mm;
+            right: 20mm;
+            bottom: 20mm;
+            border: 3px solid ' . $brandPrimary . ';
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .inner-border {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            border: 1px solid ' . $brandGold . ';
+        }
+
+        /* Header */
+        .header-section {
+            text-align: center;
+            padding: 30px 0 20px;
+            border-bottom: 2px solid #f0f0f0;
+            margin: 0 40px 30px;
+        }
+
+        .logo {
+            height: 65px;
+            margin-bottom: 10px;
+        }
+
+        .institution-name {
+            font-size: 20pt;
+            font-weight: 700;
+            color: ' . $brandPrimary . ';
+            margin: 5px 0;
+        }
+
+        .department-name {
+            font-size: 11pt;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Certificate Title */
+        .certificate-title-section {
+            text-align: center;
+            margin: 30px 0 40px;
+        }
+
+        .certificate-label {
+            font-size: 10pt;
+            letter-spacing: 4px;
+            color: #777;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .certificate-main-title {
+            font-family: "Times New Roman", serif;
+            font-size: 36pt;
+            font-weight: 700;
+            color: ' . $brandPrimary . ';
+            margin: 10px 0;
+            position: relative;
+            display: inline-block;
+            padding: 0 40px;
+        }
+
+        .certificate-main-title:before,
+        .certificate-main-title:after {
+            content: "✧";
+            position: absolute;
+            top: 50%;
+            color: ' . $brandGold . ';
+            font-size: 20pt;
+        }
+
+        .certificate-main-title:before { left: 0; }
+        .certificate-main-title:after { right: 0; }
+
+        /* Recipient Section */
+        .recipient-section {
+            text-align: center;
+            margin: 40px 60px;
+        }
+
+        .statement-text {
+            font-size: 13pt;
+            color: #555;
+            margin-bottom: 25px;
+        }
+
+        .recipient-name {
+            font-family: "Times New Roman", serif;
+            font-size: 28pt;
+            font-weight: 700;
+            color: #000;
+            padding: 20px;
+            margin: 15px 0;
+            border-bottom: 2px solid ' . $brandGold . ';
+            display: inline-block;
+        }
+
+        /* Service Section */
+        .service-section {
+            text-align: center;
+            margin: 40px 60px;
+        }
+
+        .service-name-box {
+            display: inline-block;
+            padding: 15px 30px;
+            background: ' . $brandPrimary . ';
+            color: white;
+            font-size: 15pt;
+            font-weight: 600;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        /* Footer */
+        .footer-section {
+            position: absolute;
+            bottom: 50px;
+            left: 60px;
+            right: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        /* Left Column */
+        .footer-column {
+            flex: 1;
+        }
+
+        .metadata-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 3px solid ' . $brandPrimary . ';
+        }
+
+        .metadata-item {
+            margin-bottom: 8px;
+            font-size: 10pt;
+            color: #555;
+        }
+
+        .metadata-label {
+            font-weight: 600;
+            color: ' . $brandPrimary . ';
+            display: inline-block;
+            width: 70px;
+        }
+
+        /* Center Column */
+        .signature-column {
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .signature-area {
+            padding: 15px;
+            min-width: 250px;
+        }
+
+        .signature-line {
+            width: 200px;
+            height: 1px;
+            background: #333;
+            margin: 30px auto 10px;
+        }
+
+        .signature-name {
+            font-size: 12pt;
+            font-weight: 600;
+            color: ' . $brandPrimary . ';
+            margin: 5px 0;
+        }
+
+        .signature-title {
+            font-size: 10pt;
+            color: #666;
+        }
+
+        /* Right Column */
+        .verification-box {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #eaeaea;
+            max-width: 200px;
+        }
+
+        .verification-title {
+            font-size: 10pt;
+            font-weight: 600;
+            color: ' . $brandPrimary . ';
+            margin-bottom: 10px;
+        }
+
+        .verification-code {
+            font-family: monospace;
+            font-size: 11pt;
+            font-weight: 600;
+            color: ' . $brandPrimary . ';
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .qr-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #f5f5f5;
+            border: 1px dashed #ddd;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            color: #999;
+        }
+
+        /* Background */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100pt;
+            color: rgba(26, 74, 142, 0.03);
+            font-weight: 900;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div class="watermark">BRA</div>
+
+        <div class="border-decoration">
+            <div class="inner-border">
+
+                <!-- Header -->
+                <div class="header-section">
+                    ' . ($logoUrl ? '<img src="' . $logoUrl . '" class="logo">' : '') . '
+                    <div class="institution-name">Banaadir Regional Administration</div>
+                    <div class="department-name">Waaxda Dhismo Wadaagga</div>
+                </div>
+
+                <!-- Certificate Title -->
+                <div class="certificate-title-section">
+                    <div class="certificate-label">Certificate of Service</div>
+                    <div class="certificate-main-title">SHAHADADA ADEEGGA</div>
+                </div>
+
+                <!-- Recipient -->
+                <div class="recipient-section">
+                    <div class="statement-text">
+                        Waxaa lagu aqoonsaday in:
+                    </div>
+
+                    <div class="recipient-name">' . $recipientName . '</div>
+
+                    <div class="statement-text">
+                        uu dhammeystiray adeegga:
+                    </div>
+                </div>
+
+                <!-- Service -->
+                <div class="service-section">
+                    <div class="service-name-box">' . $serviceName . '</div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer-section">
+                    <!-- Left Column -->
+                    <div class="footer-column">
+                        <div class="metadata-box">
+                            <div class="metadata-item">
+                                <span class="metadata-label">Taariikh:</span> ' . $issuedDate . '
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Lambarka:</span> ' . $uid . '
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Goobta:</span> Muqdisho
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Center Column -->
+                    <div class="footer-column signature-column">
+                        <div class="signature-area">
+                            <div class="signature-line"></div>
+                            <div class="signature-name">' . $officerName . '</div>
+                            <div class="signature-title">
+                                Agaasimaha Waaxda<br>
+                                Banaadir Regional Admin
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="footer-column">
+                        <div class="verification-box">
+                            <div class="verification-title">VERIFICATION</div>
+                            <div class="verification-code">' . $verifyCode . '</div>
+                            <div class="qr-placeholder">
+                                SCAN QR
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>';
+
+        // PDF Configuration
+        Pdf::setOptions([
+            'dpi' => 300,
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'sans-serif',
+            'isFontSubsettingEnabled' => true,
+        ]);
+
+        $pdf = Pdf::loadHTML($html)
+            ->setPaper('a4', 'landscape');
+
+        $safeName = preg_replace('/[^\w\-]+/', '_', $recipientName);
+        $filename = "BRA_Certificate_" . $safeName . ".pdf";
+
+        return $pdf->download($filename);
     }
+
 
     public function template(Service $service)
     {
         $template = CertificateTemplate::where('service_id', $service->id)->first();
-        if (!$template) {
+        if (! $template) {
             return response()->json([
                 'template_slug' => 'default-' . $service->slug,
                 'template_name' => $service->name . ' Certificate',
                 'variables_schema' => [
-                    ['key' => 'parameters', 'type' => 'textarea', 'label' => 'Parameters', 'required' => false],
-                    ['key' => 'configurations', 'type' => 'textarea', 'label' => 'Configurations', 'required' => false],
-                    ['key' => 'compliance', 'type' => 'textarea', 'label' => 'Compliance Standards', 'required' => false],
+                    ['key' => 'organization_name', 'type' => 'text', 'label' => 'Organization Name', 'required' => false],
+                    ['key' => 'logo_url', 'type' => 'text', 'label' => 'Logo URL', 'required' => false],
+                    ['key' => 'recipient_name', 'type' => 'text', 'label' => 'Recipient Name', 'required' => true],
+                    ['key' => 'recipient_achievement', 'type' => 'text', 'label' => 'Achievement/Qualification', 'required' => true],
+                    ['key' => 'accomplishment_description', 'type' => 'textarea', 'label' => 'Description', 'required' => false],
+                    ['key' => 'entity_classification', 'type' => 'text', 'label' => 'Entity Classification', 'required' => false],
+                    ['key' => 'entity_details_html', 'type' => 'textarea', 'label' => 'Entity Details HTML', 'required' => false],
+                    ['key' => 'signature_1_name', 'type' => 'text', 'label' => 'Signature 1 Name', 'required' => true],
+                    ['key' => 'signature_1_title', 'type' => 'text', 'label' => 'Signature 1 Title', 'required' => true],
+                    ['key' => 'signature_2_name', 'type' => 'text', 'label' => 'Signature 2 Name', 'required' => false],
+                    ['key' => 'signature_2_title', 'type' => 'text', 'label' => 'Signature 2 Title', 'required' => false],
+                    ['key' => 'officer_signature_name', 'type' => 'text', 'label' => 'Officer Signature Name', 'required' => false],
+                    ['key' => 'brand_primary', 'type' => 'text', 'label' => 'Primary Brand Color', 'required' => false],
+                    ['key' => 'standardized_id', 'type' => 'text', 'label' => 'Standardized ID', 'required' => false],
+                    ['key' => 'qr_svg', 'type' => 'textarea', 'label' => 'QR SVG', 'required' => false],
+                    ['key' => 'verification_link', 'type' => 'text', 'label' => 'Verification Link', 'required' => false],
                 ],
                 'branding' => ['theme' => 'default'],
                 'format_options' => ['pdf' => true, 'png' => true],
-                'html_template' => '<div class=\"p-4\"><h3>{{title}}</h3><div>Service: {{service}}</div><div>Project: {{project}}</div><div>Date: {{date}}</div><div>UID: {{uid}}</div><hr><div><strong>Parameters</strong><div>{{parameters}}</div></div><div><strong>Configurations</strong><div>{{configurations}}</div></div><div><strong>Compliance</strong><div>{{compliance}}</div></div></div>',
+                'html_template' => '<!-- Production-ready Certificate Template: Service Default --><div style=\"font-family:Arial,sans-serif;color:#222\"><style>@page{size:A4;margin:20mm} .wrap{border:6px solid #0a5ad1;padding:24px} .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px} .logo{width:64px;height:64px;object-fit:contain} .svc{font-size:12pt;color:#555} .title{font-size:28pt;font-weight:700;text-align:center;color:#0a5ad1;margin:12px 0 4px} .subtitle{text-align:center;font-size:11pt;color:#666;margin-bottom:16px} .recipient{font-size:18pt;font-weight:600;text-align:center;margin:18px 0 8px} .achievement{text-align:center;font-size:12pt;color:#333;margin-bottom:16px} .description{font-size:12pt;line-height:1.6;margin:12px 0 18px} .details{margin-top:8px} .signatures{display:flex;gap:24px;justify-content:space-between;margin-top:24px} .sig{flex:1;text-align:center} .sig .line{border-top:1px solid #999;margin-top:40px;padding-top:8px} .footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:10pt;color:#555} .badge{border:1px solid #0a5ad1;padding:4px 8px;border-radius:4px} </style><div class=\"wrap\" style=\"border-color: {{brand_primary}}\"><div class=\"header\"><div class=\"svc\">{{service}}</div><img class=\"logo\" src=\"{{logo_url}}\" alt=\"Logo\"/></div><div class=\"title\" style=\"color: {{brand_primary}}\">{{title}}</div><div class=\"subtitle\">{{organization_name}}</div><div class=\"recipient\">{{recipient_name}}</div><div class=\"achievement\">{{recipient_achievement}}</div><div class=\"description\">{{accomplishment_description}}</div><div class=\"details\"><div style=\"font-weight:600\">{{entity_classification}}</div><div>{{entity_details_html}}</div></div><div class=\"signatures\"><div class=\"sig\"><div class=\"line\">{{signature_1_name}}</div><div>{{signature_1_title}}</div></div><div class=\"sig\"><div class=\"line\">{{signature_2_name}}</div><div>{{signature_2_title}}</div></div></div><div class=\"footer\"><div>Issued {{date}}</div><div class=\"badge\">UID {{uid}}</div></div><div style=\"margin-top:8px;font-size:10pt\">ID: {{standardized_id}}</div><div style=\"margin-top:12px;font-size:10pt\"><div>{{qr_svg}}</div><div>Verify: {{verification_link}}</div></div><div style=\"margin-top:12px;font-size:10pt\">Authorizing Officer: {{officer_signature_name}}</div></div></div>',
             ]);
         }
+
         return response()->json($template);
     }
 
     public function show(Certificate $certificate)
     {
-        $project = Project::findOrFail($certificate->project_id);
         $service = optional($certificate->service);
         ManualOperationLog::create([
             'user_id' => Auth::id(),
             'action' => 'view_certificate',
-            'target_type' => 'Project',
-            'target_id' => (string) $project->id,
+            'target_type' => 'Certificate',
+            'target_id' => (string) $certificate->id,
             'details' => ['certificate_id' => $certificate->id],
         ]);
-        return view('admin.certificates.show', compact('certificate', 'project', 'service'));
+
+        return view('admin.certificates.show', compact('certificate', 'service'));
     }
 
     public function publicShow(Request $request, Certificate $certificate)
     {
-        $project = Project::findOrFail($certificate->project_id);
         ManualOperationLog::create([
             'user_id' => Auth::id(),
             'action' => 'view_certificate_public',
-            'target_type' => 'Project',
-            'target_id' => (string) $project->id,
+            'target_type' => 'Certificate',
+            'target_id' => (string) $certificate->id,
             'details' => ['certificate_id' => $certificate->id],
         ]);
+
         return view('admin.certificates.show', [
             'certificate' => $certificate,
-            'project' => $project,
             'service' => optional($certificate->service),
         ]);
     }

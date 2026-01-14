@@ -22,4 +22,3 @@ class Organization extends Model
         'admin_notes',
     ];
 }
-

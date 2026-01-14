@@ -2,16 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Apartment;
+use App\Models\BusinessLicense;
+use App\Models\Certificate;
 use App\Models\ManualOperationLog;
+use App\Models\Organization;
 use App\Models\PaymentVerification;
+use App\Models\Project;
 use App\Models\Service;
 use App\Models\ServiceRequest;
-use App\Models\Certificate;
-use App\Models\Project;
+use App\Support\StandardIdentifier;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class AdminManualRequestController extends Controller
 {
@@ -24,18 +31,20 @@ class AdminManualRequestController extends Controller
         if ($q = $request->string('q')->toString()) {
             $query->where(function ($w) use ($q) {
                 $w->where('user_full_name', 'like', "%$q%")
-                  ->orWhere('user_email', 'like', "%$q%")
-                  ->orWhere('user_phone', 'like', "%$q%");
+                    ->orWhere('user_email', 'like', "%$q%")
+                    ->orWhere('user_phone', 'like', "%$q%");
             });
         }
         $requests = $query->latest()->paginate(10)->withQueryString();
-        $statuses = ['pending','verified','rejected','discrepancy'];
-        return view('admin.manual.requests.index', compact('requests','statuses'));
+        $statuses = ['pending', 'verified', 'rejected', 'discrepancy'];
+
+        return view('admin.manual.requests.index', compact('requests', 'statuses'));
     }
 
     public function create()
     {
         $services = Service::orderBy('name')->get();
+
         return view('admin.manual.requests.create', compact('services'));
     }
 
@@ -75,6 +84,7 @@ class AdminManualRequestController extends Controller
     public function show(ServiceRequest $manual_request)
     {
         $manual_request->load('service', 'payments');
+
         return view('admin.manual.requests.show', ['request' => $manual_request]);
     }
 
@@ -116,25 +126,20 @@ class AdminManualRequestController extends Controller
         ]);
 
         if ($status === 'verified') {
-            $project = Project::where('registrant_email', $manual_request->user_email)->latest()->first();
-            if ($project) {
-                $cert = Certificate::issueForProject($project, $manual_request->service, Auth::id());
-                ManualOperationLog::create([
-                    'user_id' => Auth::id(),
-                    'action' => 'issue_certificate',
-                    'target_type' => 'Project',
-                    'target_id' => (string) $project->id,
-                    'details' => ['certificate_id' => $cert->id],
-                ]);
+            try {
+                $this->generateCertificate($request, $manual_request);
+            } catch (\Throwable $e) {
             }
         }
 
         try {
             if ($status === 'verified') {
                 Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $pv));
+
                 return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Payment verified and user notified');
             } else {
                 Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceProcessingException($manual_request, 'Payment amount discrepancy'));
+
                 return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Discrepancy recorded and user notified');
             }
         } catch (\Throwable $e) {
@@ -169,16 +174,9 @@ class AdminManualRequestController extends Controller
             'details' => ['payment_id' => $payment->id],
         ]);
 
-        $project = Project::where('registrant_email', $manual_request->user_email)->latest()->first();
-        if ($project) {
-            $cert = Certificate::issueForProject($project, $manual_request->service, Auth::id());
-            ManualOperationLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'issue_certificate',
-                'target_type' => 'Project',
-                'target_id' => (string) $project->id,
-                'details' => ['certificate_id' => $cert->id],
-            ]);
+        try {
+            $this->generateCertificate($request, $manual_request);
+        } catch (\Throwable $e) {
         }
 
         try {
@@ -187,6 +185,152 @@ class AdminManualRequestController extends Controller
         }
 
         return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Payment reconciled and user notified');
+    }
+
+    public function generateCertificate(Request $request, ServiceRequest $manual_request)
+    {
+        if (! auth()->check()) {
+            abort(403);
+        }
+        if ($manual_request->status !== 'verified') {
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Payment must be verified before generating certificate');
+        }
+        $pv = $manual_request->payments()->where('status', 'verified')->latest()->first();
+        if (! $pv) {
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'No verified payment found');
+        }
+        $service = $manual_request->service;
+        if (! $service) {
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Service not found for request');
+        }
+
+        $classification = match ($service->slug) {
+            'project-registration' => 'Project Registration',
+            'developer-registration' => 'Organization Registration',
+            'property-transfer-services' => 'Property Transfer',
+            'business-license' => 'Business License',
+            'construction-permit-application', 'construction-permit' => 'Construction Permit',
+            default => 'Service Certificate',
+        };
+
+        $details = (array) $manual_request->request_details;
+        $rows = [];
+        $rows[] = ['Service', $service->name];
+        $rows[] = ['Applicant', $manual_request->user_full_name];
+        $rows[] = ['Email', $manual_request->user_email];
+        if ($manual_request->user_phone) {
+            $rows[] = ['Phone', $manual_request->user_phone];
+        }
+        $rows[] = ['Payment Reference', $pv->reference_number];
+        foreach ($details as $k => $v) {
+            $label = strtoupper(str_replace(['_', '-'], ' ', (string) $k));
+            $val = is_scalar($v) ? (string) $v : json_encode($v);
+            $rows[] = [$label, $val];
+        }
+        $entityDetailsHtml = '<table style="width:100%;border-collapse:collapse">';
+        foreach ($rows as $row) {
+            $entityDetailsHtml .= '<tr><td style="padding:6px;border:1px solid #ddd"><strong>'.e($row[0]).'</strong></td><td style="padding:6px;border:1px solid #ddd">'.e($row[1]).'</td></tr>';
+        }
+        $entityDetailsHtml .= '</table>';
+
+        $uid = (string) Str::uuid();
+        $number = 'IPAMS-COC-'.date('Y').'-'.str_pad((string) $manual_request->id, 6, '0', STR_PAD_LEFT).'-'.$service->id.'-'.substr($uid, 0, 8);
+        $standardId = StandardIdentifier::normalize('other', 'SR-'.$manual_request->id);
+        $issuedAt = now()->toDateString();
+        $title = $service->name.' Certificate';
+        $hash = hash('sha256', implode('|', [
+            $uid,
+            $number,
+            (string) $service->id,
+            (string) $issuedAt,
+            (string) $title,
+            (string) $standardId,
+            (string) $pv->reference_number,
+        ]));
+
+        $receiverType = null;
+        $receiverId = null;
+        if ($service->slug === 'project-registration') {
+            $proj = Project::where('registrant_email', $manual_request->user_email)->orWhere('registrant_phone', $manual_request->user_phone)->latest()->first();
+            if ($proj) {
+                $receiverType = Project::class;
+                $receiverId = $proj->id;
+            }
+        } elseif ($service->slug === 'business-license') {
+            $bl = BusinessLicense::where('registrant_email', $manual_request->user_email)->orWhere('registrant_phone', $manual_request->user_phone)->latest()->first();
+            if ($bl) {
+                $receiverType = 'BusinessLicense';
+                $receiverId = $bl->id;
+            }
+        } elseif ($service->slug === 'ownership-certificate' || $service->slug === 'property-transfer-services') {
+            $apt = Apartment::where('contact_phone', $manual_request->user_phone)->latest()->first();
+            if ($apt) {
+                $receiverType = 'Apartment';
+                $receiverId = (string) $apt->id;
+            }
+        } elseif ($service->slug === 'developer-registration' || $service->slug === 'organization-registration') {
+            $org = Organization::where('contact_email', $manual_request->user_email)->orWhere('contact_phone', $manual_request->user_phone)->latest()->first();
+            if ($org) {
+                $receiverType = Organization::class;
+                $receiverId = (string) $org->id;
+            }
+        }
+
+        $certificate = Certificate::create([
+            'receiver_type' => $receiverType,
+            'receiver_id' => $receiverId,
+            'service_id' => $service->id,
+            'certificate_number' => $number,
+            'certificate_uid' => $uid,
+            'issued_at' => $issuedAt,
+            'issued_by' => Auth::id(),
+            'issued_to' => $manual_request->user_full_name,
+            'certificate_hash' => $hash,
+            'status' => 'valid',
+            'metadata' => [
+                'title' => $title,
+                'fields' => [
+                    'standardized_id' => $standardId,
+                    'entity_classification' => $classification,
+                    'entity_details_html' => $entityDetailsHtml,
+                    'officer_signature_name' => optional(Auth::user())->first_name.' '.optional(Auth::user())->last_name,
+                    'payment_reference' => $pv->reference_number,
+                ],
+                'service_request_id' => $manual_request->id,
+                'payment_id' => $pv->id,
+                'format_options' => ['pdf' => true],
+            ],
+        ]);
+
+        $verificationLink = URL::signedRoute('certificate.public', ['certificate' => $certificate]);
+        $qrSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#fff" stroke="#000"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="8">SCAN</text></svg>';
+        $meta = (array) $certificate->metadata;
+        $fields = (array) ($meta['fields'] ?? []);
+        $fields['verification_link'] = $verificationLink;
+        $fields['qr_svg'] = $qrSvg;
+        $meta['fields'] = $fields;
+        $meta['verification_link'] = $verificationLink;
+        $certificate->metadata = $meta;
+        $certificate->save();
+
+        $html = '<div class="p-4" style="font-family:Arial,sans-serif"><div class="d-flex align-items-center mb-3"><h3 class="mb-0" style="margin:0;padding:0">'.e($title).'</h3></div><div class="mb-2">Service: '.e($service->name).'</div><div class="mb-2">Date: '.e($issuedAt).'</div><div class="mb-2">UID: '.e($uid).'</div><div class="mb-2">Standardized ID: '.e($standardId).'</div><hr><div class="mb-2"><strong>Entity Classification</strong>: '.e($classification).'</div><div class="mb-3"><strong>Details</strong></div>'.$entityDetailsHtml.'<hr><div class="d-flex align-items-center gap-3"><div>'.$qrSvg.'</div><div style="font-size:12px">Verify: '.e($verificationLink).'</div></div><div class="mt-3" style="font-size:12px">Authorizing Officer: '.e($fields['officer_signature_name'] ?? 'Officer').'</div></div>';
+        $pdfData = Pdf::loadHTML($html)->setPaper('a4')->output();
+        $dir = 'certificates';
+        $filename = $number.'.pdf';
+        $path = $dir.'/'.$filename;
+        Storage::disk('local')->put($path, $pdfData);
+        $certificate->metadata = array_merge($certificate->metadata ?? [], ['archived_pdf_path' => $path]);
+        $certificate->save();
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'issue_certificate_manual',
+            'target_type' => 'ServiceRequest',
+            'target_id' => (string) $manual_request->id,
+            'details' => ['certificate_id' => $certificate->id, 'payment_id' => $pv->id],
+        ]);
+
+        return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Certificate generated successfully');
     }
 
     public function reject(Request $request, ServiceRequest $manual_request)
@@ -222,6 +366,7 @@ class AdminManualRequestController extends Controller
             abort(404);
         }
         $receiptNumber = 'IPAMS-'.str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT);
+
         return view('admin.manual.requests.receipt', [
             'request' => $manual_request,
             'payment' => $payment,
@@ -233,6 +378,7 @@ class AdminManualRequestController extends Controller
     {
         $manual_request = ServiceRequest::with('service')->findOrFail($payment->service_request_id);
         $receiptNumber = 'IPAMS-'.str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT);
+
         return view('receipt', [
             'request' => $manual_request,
             'payment' => $payment,

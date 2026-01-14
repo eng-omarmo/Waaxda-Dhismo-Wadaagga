@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\Validator;
 
 class ApartmentConstructionPermitController extends Controller
 {
-
-
-
     public function publicShow(Request $request)
     {
         $service = Service::where('slug', 'construction-permit-application')->firstOrFail();
@@ -78,7 +75,7 @@ class ApartmentConstructionPermitController extends Controller
         }
 
         $payment = null;
-        if (!empty($validated['payment_id'])) {
+        if (! empty($validated['payment_id'])) {
             $payment = OnlinePayment::find($validated['payment_id']);
         }
 
@@ -122,16 +119,16 @@ class ApartmentConstructionPermitController extends Controller
             ]
         );
 
-        if (!$req->wasRecentlyCreated) {
+        if (! $req->wasRecentlyCreated) {
             $existingDetails = (array) $req->request_details;
             $req->request_details = array_merge($existingDetails, $requestDetails);
-            if (!$req->user_full_name) {
+            if (! $req->user_full_name) {
                 $req->user_full_name = $validated['applicant_full_name'];
             }
-            if (!$req->user_phone) {
+            if (! $req->user_phone) {
                 $req->user_phone = $validated['applicant_phone'];
             }
-            if (!$req->user_national_id) {
+            if (! $req->user_national_id) {
                 $req->user_national_id = $validated['applicant_national_id'];
             }
             $req->save();
@@ -160,11 +157,12 @@ class ApartmentConstructionPermitController extends Controller
         $query = ApartmentConstructionPermit::latest();
 
         if ($request->has('search')) {
-            $query->where('applicant_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('land_plot_number', 'like', '%' . $request->search . '%');
+            $query->where('applicant_name', 'like', '%'.$request->search.'%')
+                ->orWhere('land_plot_number', 'like', '%'.$request->search.'%');
         }
 
         $permits = $query->paginate(10);
+
         return view('admin.permits.index', compact('permits'));
     }
 
@@ -257,6 +255,7 @@ class ApartmentConstructionPermitController extends Controller
             Storage::disk('public')->delete($permit->approved_drawings_path);
         }
         $permit->delete();
+
         return redirect()->route('admin.permits.index')->with('success', 'Construction permit deleted successfully.');
     }
 
@@ -265,6 +264,7 @@ class ApartmentConstructionPermitController extends Controller
         if ($permit->approved_drawings_path) {
             return Storage::disk('public')->download($permit->approved_drawings_path);
         }
+
         return redirect()->back()->with('error', 'No drawing file available.');
     }
 }

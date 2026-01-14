@@ -4,17 +4,19 @@ namespace App\Mail;
 
 use App\Models\PaymentVerification;
 use App\Models\ServiceRequest;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\URL;
 
 class ServiceRequestVerified extends Mailable
 {
     use Queueable, SerializesModels;
 
     public ServiceRequest $request;
+
     public PaymentVerification $payment;
+
     public string $receiptUrl;
 
     public function __construct(ServiceRequest $request, PaymentVerification $payment)

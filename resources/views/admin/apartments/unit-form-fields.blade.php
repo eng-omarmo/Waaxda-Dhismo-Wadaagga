@@ -1,6 +1,6 @@
 <div class="unit-form border rounded p-3 mb-3">
     @if(isset($unit))
-        <input type="hidden" name="units[{{ $index }}][id]" value="{{ $unit->id }}">
+    <input type="hidden" name="units[{{ $index }}][id]" value="{{ $unit->id }}">
     @endif
     <div class="row">
         <div class="col-md-3">

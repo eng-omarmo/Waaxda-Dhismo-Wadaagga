@@ -34,7 +34,7 @@ return new class extends Migration
             $table->enum('permit_status', [
                 'Pending',
                 'Approved',
-                'Rejected'
+                'Rejected',
             ])->default('Pending');
 
             $table->timestamps();

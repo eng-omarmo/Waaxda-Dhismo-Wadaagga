@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ApartmentTransfer extends Model
 {
     protected $table = 'apartment_unit_transfers';
+
     protected $fillable = [
         'transfer_reference_number',
         'apartment_number',
@@ -24,9 +25,9 @@ class ApartmentTransfer extends Model
     protected $casts = [
         'transfer_date' => 'date',
     ];
+
     public function apartment()
     {
         return $this->belongsTo(Apartment::class, 'apartment_number');
     }
-
 }

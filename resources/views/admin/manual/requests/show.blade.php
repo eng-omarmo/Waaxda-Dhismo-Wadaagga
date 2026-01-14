@@ -9,6 +9,12 @@
         <h5 class="mb-0">{{ $request->service->name }}</h5>
       </div>
       <div class="card-body">
+        @if (session('status'))
+          <div class="alert alert-success">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+          <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
         <div class="mb-2">User: {{ $request->user_full_name }}</div>
         <div class="mb-2">Email: {{ $request->user_email }}</div>
         <div class="mb-2">Phone: {{ $request->user_phone }}</div>
@@ -23,7 +29,19 @@
 
     <div class="card">
       <div class="card-header">
-        <h6 class="mb-0">Payment Records</h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Payment Records</h6>
+          @if($request->status==='verified')
+          <form id="genCertForm" method="post" action="{{ route('admin.manual-requests.generateCertificate', $request) }}">
+            @csrf
+            <button id="genCertBtn" class="btn btn-success">
+              <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+              Generate Certificate
+            </button>
+            <a href="{{ route('admin.certificates.index') }}" class="btn btn-outline-primary ms-2">View Certificates</a>
+          </form>
+          @endif
+        </div>
       </div>
       <div class="card-body">
         <table class="table">
@@ -107,4 +125,17 @@
     </div>
   </div>
 </div>
+@push('page-scripts')
+<script>
+  const genForm = document.getElementById('genCertForm');
+  const genBtn = document.getElementById('genCertBtn');
+  if (genForm && genBtn) {
+    genForm.addEventListener('submit', function() {
+      const spinner = genBtn.querySelector('.spinner-border');
+      if (spinner) spinner.classList.remove('d-none');
+      genBtn.setAttribute('disabled', 'disabled');
+    });
+  }
+</script>
+@endpush
 @endsection

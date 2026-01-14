@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
-use App\Models\Organization;
 
 class Project extends Model
 {
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [

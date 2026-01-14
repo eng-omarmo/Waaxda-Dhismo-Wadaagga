@@ -6,7 +6,6 @@ use App\Models\BusinessLicense;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Storage;
 
 class BusinessLicenseController extends Controller
 {
@@ -61,4 +60,3 @@ class BusinessLicenseController extends Controller
         return redirect()->route('services.business-license')->with('status', 'License submission received. Status: pending review.');
     }
 }
-

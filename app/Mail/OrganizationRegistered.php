@@ -11,9 +11,7 @@ class OrganizationRegistered extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Organization $organization)
-    {
-    }
+    public function __construct(public Organization $organization) {}
 
     public function build()
     {
@@ -21,4 +19,3 @@ class OrganizationRegistered extends Mailable
             ->view('mail.organization-registered', ['org' => $this->organization]);
     }
 }
-

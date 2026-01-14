@@ -5,12 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 class AuthController extends Controller
 {
@@ -68,8 +67,9 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Too many attempts. Please try again later.']);
         }
 
-        if (!Auth::attempt(['email' => $request->email, 'password' => $request->password, 'active' => true], $request->boolean('remember'))) {
+        if (! Auth::attempt(['email' => $request->email, 'password' => $request->password, 'active' => true], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
+
             return back()->withErrors(['email' => 'Invalid credentials or inactive account.']);
         }
 
@@ -77,7 +77,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        if (!Auth::user()->hasVerifiedEmail()) {
+        if (! Auth::user()->hasVerifiedEmail()) {
             return redirect()->route('verification.notice');
         }
 
@@ -89,6 +89,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 
@@ -105,6 +106,7 @@ class AuthController extends Controller
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
         }
+
         return redirect('/dashboard');
     }
 
@@ -114,6 +116,7 @@ class AuthController extends Controller
             return redirect('/dashboard');
         }
         $request->user()->sendEmailVerificationNotification();
+
         return back()->with('status', 'verification-link-sent');
     }
 }

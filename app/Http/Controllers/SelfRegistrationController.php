@@ -9,8 +9,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class SelfRegistrationController extends Controller
 {
@@ -46,7 +46,8 @@ class SelfRegistrationController extends Controller
     {
         $reg = $this->current($request);
         $amount = (float) env('REGISTRATION_FEE', 25.00);
-        return view('register.step2', compact('reg','amount'));
+
+        return view('register.step2', compact('reg', 'amount'));
     }
 
     public function processPayment(Request $request)
@@ -56,10 +57,10 @@ class SelfRegistrationController extends Controller
 
         $validated = $request->validate([
             'payment_method' => ['required', 'in:card,paypal'],
-            'card_name' => ['required_if:payment_method,card','string','max:255'],
-            'card_number' => ['required_if:payment_method,card','string','min:12','max:19'],
-            'card_expiry' => ['required_if:payment_method,card','string','regex:/^(0[1-9]|1[0-2])\\/\\d{2}$/'],
-            'card_cvc' => ['required_if:payment_method,card','string','min:3','max:4'],
+            'card_name' => ['required_if:payment_method,card', 'string', 'max:255'],
+            'card_number' => ['required_if:payment_method,card', 'string', 'min:12', 'max:19'],
+            'card_expiry' => ['required_if:payment_method,card', 'string', 'regex:/^(0[1-9]|1[0-2])\\/\\d{2}$/'],
+            'card_cvc' => ['required_if:payment_method,card', 'string', 'min:3', 'max:4'],
         ], [
             'card_expiry.regex' => 'Expiry must be MM/YY',
         ]);
@@ -112,12 +113,14 @@ class SelfRegistrationController extends Controller
     {
         $reg = PendingRegistration::where('resume_token', $token)->firstOrFail();
         $request->session()->put('registration_id', $reg->id);
+
         return redirect()->route($reg->step === 2 ? 'register.step2' : 'register.step1');
     }
 
     public function publicReceiptOnline(OnlinePayment $payment)
     {
         $reg = PendingRegistration::findOrFail($payment->pending_registration_id);
+
         return view('receipt-online', ['payment' => $payment, 'registration' => $reg]);
     }
 
@@ -125,6 +128,7 @@ class SelfRegistrationController extends Controller
     {
         $id = $request->session()->get('registration_id');
         abort_unless($id, 404);
+
         return PendingRegistration::findOrFail($id);
     }
 }

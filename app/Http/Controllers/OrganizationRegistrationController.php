@@ -7,7 +7,6 @@ use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Storage;
 
 class OrganizationRegistrationController extends Controller
 {

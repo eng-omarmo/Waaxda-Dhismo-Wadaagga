@@ -22,6 +22,27 @@
             </div>
         </div>
 
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Generate From Phone</h6>
+                <div class="small text-muted">Quick lookup and issuance</div>
+            </div>
+            <div class="card-body">
+                <form id="generateFromPhoneForm" method="POST" action="{{ route('admin.certificates.generate_phone') }}" class="row g-3">
+                    @csrf
+                    <input type="hidden" name="service_id" id="lookupServiceId">
+                    <div class="col-md-8">
+                        <label class="form-label">User Phone</label>
+                        <input name="user_phone" type="tel" class="form-control" placeholder="061XXXXXXX" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100">Generate Certificate</button>
+                    </div>
+                </form>
+                <div class="form-text mt-2">Select a service above, enter a phone, and issue.</div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Certification Details</h6>
@@ -251,7 +272,7 @@
 
     function defaultTemplate() {
         const logoUrl = "{{ asset('assets/images/logo/logo.png') }}";
-        return '<div class="p-4"><div class="d-flex align-items-center mb-3"><img src="'+logoUrl+'" alt="Logo" style="height:40px" class="me-2"><h4 class="mb-0">@{{title}}</h4></div><div>Service: @{{service}}</div><div>Project: @{{project}}</div><div>Date: @{{date}}</div><div>UID: @{{uid}}</div><div>Standardized ID: @{{standardized_id}}</div><hr><div><strong>Details</strong></div><div>Parameters: @{{parameters}}</div><div>Configurations: @{{configurations}}</div><div>Compliance: @{{compliance}}</div></div>';
+        return '<div class="p-4"><div class="d-flex align-items-center mb-3"><img src="'+logoUrl+'" alt="Logo" style="height:40px" class="me-2"><h4 class="mb-0">@{{title}}</h4></div><div>Service: @{{service}}</div><div>Date: @{{date}}</div><div>UID: @{{uid}}</div><div>Standardized ID: @{{standardized_id}}</div><hr><div><strong>Details</strong></div><div>Parameters: @{{parameters}}</div><div>Configurations: @{{configurations}}</div><div>Compliance: @{{compliance}}</div></div>';
     }
 
     function genUID() {
@@ -277,6 +298,12 @@
         if (!v) return '';
         return `IPAMS:${t.toUpperCase()}:${String(v).trim().toUpperCase()}`;
     }
+
+    const lookupServiceId = document.getElementById('lookupServiceId');
+    serviceSelect.addEventListener('change', () => {
+        lookupServiceId.value = serviceSelect.value || '';
+    });
+    lookupServiceId.value = serviceSelect.value || '';
 </script>
 @endpush
 @endsection

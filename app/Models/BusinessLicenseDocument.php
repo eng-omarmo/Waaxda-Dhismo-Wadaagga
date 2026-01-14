@@ -20,4 +20,3 @@ class BusinessLicenseDocument extends Model
         return $this->belongsTo(BusinessLicense::class, 'license_id', 'id');
     }
 }
-

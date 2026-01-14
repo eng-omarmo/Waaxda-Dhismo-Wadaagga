@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\ManualOperationLog;
 use App\Models\OnlinePayment;
-use App\Models\PendingRegistration;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use App\Models\UserChange;
@@ -19,8 +18,8 @@ class ProfileController extends Controller
         $user = $request->user();
         $role = $user->role;
         $payments = OnlinePayment::whereHas('registration', function ($q) use ($user) {
-                $q->where('email', $user->email);
-            })
+            $q->where('email', $user->email);
+        })
             ->with(['registration', 'registration.service'])
             ->latest()
             ->get();
@@ -81,7 +80,7 @@ class ProfileController extends Controller
             }
             $changes[$key] = ['from' => $original[$key] ?? null, 'to' => $value];
         }
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             UserChange::create([
                 'user_id' => $user->id,
                 'changed_by' => Auth::id(),

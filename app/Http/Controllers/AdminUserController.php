@@ -16,8 +16,8 @@ class AdminUserController extends Controller
         if ($search = $request->string('q')->toString()) {
             $query->where(function ($q) use ($search) {
                 $q->where('email', 'like', "%$search%")
-                  ->orWhere('first_name', 'like', "%$search%")
-                  ->orWhere('last_name', 'like', "%$search%");
+                    ->orWhere('first_name', 'like', "%$search%")
+                    ->orWhere('last_name', 'like', "%$search%");
             });
         }
         if ($role = $request->string('role')->toString()) {
@@ -27,6 +27,7 @@ class AdminUserController extends Controller
             $query->where('active', $status === 'active');
         }
         $users = $query->latest()->paginate(10)->withQueryString();
+
         return view('admin.users.index', compact('users'));
     }
 
@@ -105,7 +106,7 @@ class AdminUserController extends Controller
             }
             $changes[$key] = ['from' => $original[$key] ?? null, 'to' => $value];
         }
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             UserChange::create([
                 'user_id' => $user->id,
                 'changed_by' => Auth::id(),
@@ -125,6 +126,7 @@ class AdminUserController extends Controller
             'changed_by' => Auth::id(),
             'changes' => ['active' => ['from' => true, 'to' => false]],
         ]);
+
         return redirect()->route('admin.users.index')->with('status', 'deactivated');
     }
 }

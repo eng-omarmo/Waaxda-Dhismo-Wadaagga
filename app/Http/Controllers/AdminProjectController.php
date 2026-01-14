@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
-use App\Models\Organization;
-use App\Models\Service;
 use App\Models\Certificate;
+use App\Models\Organization;
+use App\Models\Project;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -37,7 +37,6 @@ class AdminProjectController extends Controller
 
         return view('admin.pages.projects', compact('projects', 'developers', 'statuses', 'sort', 'direction'));
     }
-
 
     public function create()
     {
@@ -74,12 +73,15 @@ class AdminProjectController extends Controller
         return redirect()->route('admin.projects')->with('status', 'Project registered successfully');
     }
 
-    public function edit(Project $project){
+    public function edit(Project $project)
+    {
         $developers = Organization::orderBy('name')->get();
+
         return view('admin.pages.edit-project', compact('project', 'developers'));
     }
 
-    public function update(Request $request, Project $project){
+    public function update(Request $request, Project $project)
+    {
         $request->validate([
             'project_name' => ['required', 'string', 'max:255'],
             'location_text' => ['required', 'string', 'max:255'],
@@ -108,6 +110,7 @@ class AdminProjectController extends Controller
 
         return redirect()->route('admin.projects')->with('status', 'Developer assignment updated');
     }
+
     public function destroy(Project $project)
     {
         $project->delete();

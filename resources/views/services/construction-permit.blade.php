@@ -69,7 +69,6 @@
 
 <body>
     <x-public-navbar />
-
     <header class="hero">
         <div class="container">
             <div class="row align-items-center">

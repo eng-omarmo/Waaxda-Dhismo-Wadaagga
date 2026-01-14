@@ -18,8 +18,8 @@ class AdminOrganizationController extends Controller
         if ($q = $request->string('q')->toString()) {
             $query->where(function ($w) use ($q) {
                 $w->where('name', 'like', "%$q%")
-                  ->orWhere('registration_number', 'like', "%$q%")
-                  ->orWhere('contact_email', 'like', "%$q%");
+                    ->orWhere('registration_number', 'like', "%$q%")
+                    ->orWhere('contact_email', 'like', "%$q%");
             });
         }
         if ($status = $request->string('status')->toString()) {
@@ -34,12 +34,14 @@ class AdminOrganizationController extends Controller
         }
         $organizations = $query->paginate(10)->withQueryString();
         $statuses = ['pending', 'approved', 'rejected'];
+
         return view('admin.pages.organizations', compact('organizations', 'statuses', 'sort', 'direction'));
     }
 
     public function show(Organization $organization)
     {
         $documents = OrganizationDocument::where('organization_id', $organization->id)->latest()->get();
+
         return view('admin.pages.organization-show', compact('organization', 'documents'));
     }
 
@@ -48,9 +50,10 @@ class AdminOrganizationController extends Controller
         if ($document->organization_id !== $organization->id) {
             abort(404);
         }
-        if (!Storage::disk('public')->exists($document->file_path)) {
+        if (! Storage::disk('public')->exists($document->file_path)) {
             abort(404);
         }
+
         return Storage::disk('public')->download($document->file_path, $document->file_name);
     }
 
@@ -65,12 +68,13 @@ class AdminOrganizationController extends Controller
             'contact_role' => ['required', 'string', 'max:255'],
             'contact_phone' => ['required', 'string', 'max:50'],
             'contact_email' => ['required', 'email', 'max:255'],
-            'status' => ['required', Rule::in(['pending','approved','rejected'])],
+            'status' => ['required', Rule::in(['pending', 'approved', 'rejected'])],
         ]);
         $org = Organization::create($request->only([
-            'name','registration_number','address','type',
-            'contact_full_name','contact_role','contact_phone','contact_email','status'
+            'name', 'registration_number', 'address', 'type',
+            'contact_full_name', 'contact_role', 'contact_phone', 'contact_email', 'status',
         ]));
+
         return redirect()->route('admin.organizations.index')->with('status', 'Organization created');
     }
 
@@ -85,12 +89,12 @@ class AdminOrganizationController extends Controller
             'contact_role' => ['required', 'string', 'max:255'],
             'contact_phone' => ['required', 'string', 'max:50'],
             'contact_email' => ['required', 'email', 'max:255'],
-            'status' => ['required', Rule::in(['pending','approved','rejected'])],
+            'status' => ['required', Rule::in(['pending', 'approved', 'rejected'])],
         ]);
         $original = $organization->getOriginal();
         $organization->fill($request->only([
-            'name','registration_number','address','type',
-            'contact_full_name','contact_role','contact_phone','contact_email','status'
+            'name', 'registration_number', 'address', 'type',
+            'contact_full_name', 'contact_role', 'contact_phone', 'contact_email', 'status',
         ]));
         $organization->save();
         $changes = [];
@@ -100,13 +104,14 @@ class AdminOrganizationController extends Controller
             }
             $changes[$key] = ['from' => $original[$key] ?? null, 'to' => $value];
         }
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             OrganizationChange::create([
                 'organization_id' => $organization->id,
                 'changed_by' => Auth::id(),
                 'changes' => $changes,
             ]);
         }
+
         return redirect()->route('admin.organizations.index')->with('status', 'Organization updated');
     }
 
@@ -120,6 +125,7 @@ class AdminOrganizationController extends Controller
             'changed_by' => Auth::id(),
             'changes' => ['status' => ['from' => $original['status'] ?? null, 'to' => 'approved']],
         ]);
+
         return redirect()->route('admin.organizations.index')->with('status', 'Organization approved');
     }
 
@@ -134,9 +140,10 @@ class AdminOrganizationController extends Controller
             'changed_by' => Auth::id(),
             'changes' => [
                 'status' => ['from' => $original['status'] ?? null, 'to' => 'rejected'],
-                'admin_notes' => ['from' => $original['admin_notes'] ?? null, 'to' => $organization->admin_notes]
+                'admin_notes' => ['from' => $original['admin_notes'] ?? null, 'to' => $organization->admin_notes],
             ],
         ]);
+
         return redirect()->route('admin.organizations.index')->with('status', 'Organization rejected');
     }
 }

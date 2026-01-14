@@ -29,7 +29,7 @@ return new class extends Migration
             $table->enum('transfer_reason', [
                 'Sale',
                 'Inheritance',
-                'Gift'
+                'Gift',
             ]);
 
             $table->date('transfer_date');
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->enum('approval_status', [
                 'Pending',
                 'Approved',
-                'Rejected'
+                'Rejected',
             ])->default('Pending');
 
             $table->timestamps();

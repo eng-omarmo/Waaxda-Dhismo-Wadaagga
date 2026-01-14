@@ -13,9 +13,40 @@
     <h5 id="ownership" class="mb-3">Ownership & Transfer Trends</h5>
     <p class="text-muted">Trend analysis placeholder.</p>
     <hr>
-    <h5 id="payments" class="mb-3">Online Payments</h5>
+<h5 id="payments" class="mb-3">Online Payments</h5>
+    <form method="get" class="row g-2 align-items-end mb-3">
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+          @php $statusSel = request('status',''); @endphp
+          <option value="" {{ $statusSel==='' ? 'selected' : '' }}>All</option>
+          <option value="initiated" {{ $statusSel==='initiated' ? 'selected' : '' }}>Initiated</option>
+          <option value="completed" {{ $statusSel==='completed' ? 'selected' : '' }}>Completed</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Limit</label>
+        <select name="limit" class="form-select">
+          @php $limitSel = (int) request('limit', 100); @endphp
+          @foreach([50,100,200,500] as $opt)
+            <option value="{{ $opt }}" {{ $limitSel===$opt ? 'selected' : '' }}>{{ $opt }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-primary">Apply</button>
+      </div>
+    </form>
     @php
-      $payments = \App\Models\OnlinePayment::with(['registration', 'registration.service'])->latest()->limit(100)->get();
+      $status = request('status','');
+      $limit = (int) request('limit', 100);
+      if ($limit < 1) { $limit = 100; }
+      if ($limit > 500) { $limit = 500; }
+      $query = \App\Models\OnlinePayment::with(['registration', 'registration.service'])->latest();
+      if (in_array($status, ['initiated','completed'], true)) {
+        $query->where('status', $status);
+      }
+      $payments = $query->limit($limit)->get();
     @endphp
     <div class="table-responsive">
       <table class="table table-striped">

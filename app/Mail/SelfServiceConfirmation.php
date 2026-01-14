@@ -15,9 +15,13 @@ class SelfServiceConfirmation extends Mailable
     use Queueable, SerializesModels;
 
     public User $user;
+
     public PendingRegistration $registration;
+
     public OnlinePayment $payment;
+
     public string $passwordPlain;
+
     public string $receiptUrl;
 
     public function __construct(User $user, PendingRegistration $registration, OnlinePayment $payment, string $passwordPlain, string $receiptUrl)
@@ -32,6 +36,7 @@ class SelfServiceConfirmation extends Mailable
     public function build()
     {
         $service = Service::find($this->registration->service_id);
+
         return $this->subject('Service Request Confirmed')
             ->view('mail.self-service-confirmation', [
                 'user' => $this->user,

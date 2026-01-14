@@ -75,7 +75,7 @@ class ServiceTrackingController extends Controller
                 'created_at' => now(),
             ]);
 
-            if (!$result) {
+            if (! $result) {
                 return back()->withErrors(['reference' => __('No matching record found')])->withInput();
             }
 
@@ -90,10 +90,10 @@ class ServiceTrackingController extends Controller
                 'matched_email' => false,
                 'created_at' => now(),
             ]);
+
             return back()->withErrors(['reference' => __('System unavailable. Please try again later.')])->withInput();
         } finally {
             RateLimiter::hit($key, 60);
         }
     }
 }
-
