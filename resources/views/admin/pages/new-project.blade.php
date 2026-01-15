@@ -9,6 +9,19 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="mb-4">Contact Details</h5>
+                    @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <div class="fw-bold mb-2">Please fix the following:</div>
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+                    @if (session('status'))
+                    <div class="alert alert-success">{{ session('status') }}</div>
+                    @endif
                     <form method="POST" action="{{ route('admin.projects.store') }}">
                         @csrf
                         <div class="row">
@@ -41,7 +54,20 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Developer (optional)</label>
-                            <input name="developer_name" type="text" class="form-control" placeholder="Leave blank; assign later by an officer">
+                            <select name="developer_id" class="form-select">
+                                <option value="">— None —</option>
+                                @foreach ($developers as $dev)
+                                <option value="{{ $dev->id }}">{{ $dev->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                @foreach ($statuses as $s)
+                                <option value="{{ $s }}" @selected(old('status', 'Draft' )===$s)>{{ $s }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div class="mb-3">
@@ -49,11 +75,9 @@
                             <input type="text" class="form-control" value="{{ date('Y-m-d') }}" disabled>
                         </div>
 
-                        <input type="hidden" name="status" id="statusField" value="Draft">
-
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">Save Draft</button>
-                            <button type="button" class="btn btn-success" onclick="submitAsFinal()">Submit Registration</button>
+                            <button type="button" class="btn btn-success" onclick="document.querySelector('select[name=status]').value='Submitted'; this.closest('form').submit();">Submit Registration</button>
                         </div>
                     </form>
                 </div>
@@ -90,10 +114,4 @@
     </div>
 </div>
 
-<script>
-    function submitAsFinal() {
-        document.getElementById('statusField').value = 'Submitted';
-        document.querySelector('form').submit();
-    }
-</script>
 @endsection

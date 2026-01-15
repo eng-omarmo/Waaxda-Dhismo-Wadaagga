@@ -40,13 +40,19 @@ class AdminProjectController extends Controller
 
     public function create()
     {
-        return view('admin.pages.new-project');
+        $developers = Organization::orderBy('name')->get();
+        $statuses = ['Draft', 'Submitted', 'Approved'];
+
+        return view('admin.pages.new-project', compact('developers', 'statuses'));
     }
 
     public function store(Request $request)
     {
 
         $request->validate([
+            'registrant_name' => ['required', 'string', 'max:255'],
+            'registrant_phone' => ['required', 'string', 'max:50'],
+            'registrant_email' => ['required', 'email', 'max:255'],
             'project_name' => ['required', 'string', 'max:255'],
             'location_text' => ['required', 'string', 'max:255'],
             'developer_id' => ['nullable', 'integer', 'exists:organizations,id'],
@@ -60,9 +66,9 @@ class AdminProjectController extends Controller
             'location_text' => $request->location_text,
             'developer_id' => $request->developer_id ?: null,
             'status' => $request->status,
-            'registrant_name' => trim(($user->first_name ?? '').' '.($user->last_name ?? '')) ?: 'Administrator',
-            'registrant_phone' => $user->contact_phone ?? '',
-            'registrant_email' => $user->email ?? '',
+            'registrant_name' => $request->registrant_name ?: (trim(($user->first_name ?? '').' '.($user->last_name ?? '')) ?: 'Administrator'),
+            'registrant_phone' => $request->registrant_phone ?: ($user->contact_phone ?? ''),
+            'registrant_email' => $request->registrant_email ?: ($user->email ?? ''),
         ]);
 
         $service = Service::where('slug', 'project-registration')->first();

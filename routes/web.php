@@ -97,7 +97,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/projects/{project}', [\App\Http\Controllers\AdminProjectController::class, 'destroy'])->name('projects.destroy');
     Route::put('/projects/{project}', [\App\Http\Controllers\AdminProjectController::class, 'update'])->name('projects.update');
     Route::get('/projects/create', [\App\Http\Controllers\AdminProjectController::class, 'create'])->name('projects.create');
-    Route::get('project/store', [\App\Http\Controllers\AdminProjectController::class, 'store'])->name('projects.store');
     Route::get('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/{organization}', [\App\Http\Controllers\AdminOrganizationController::class, 'show'])->name('organizations.show');
     Route::post('/organizations', [\App\Http\Controllers\AdminOrganizationController::class, 'store'])->name('organizations.store');

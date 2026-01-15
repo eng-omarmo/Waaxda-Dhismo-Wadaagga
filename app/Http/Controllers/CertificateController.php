@@ -81,7 +81,7 @@ class CertificateController extends Controller
 
         $fields = $request->input('fields', []);
         $uid = (string) Str::uuid();
-        $number = 'IPAMS-COC-' . date('Y') . '-' . substr($project->id, 0, 8) . '-' . $service->id . '-' . substr($uid, 0, 8);
+        $number = 'IPAMS-COC-'.date('Y').'-'.substr($project->id, 0, 8).'-'.$service->id.'-'.substr($uid, 0, 8);
         $hash = hash('sha256', implode('|', [
             $uid,
             $number,
@@ -121,12 +121,12 @@ class CertificateController extends Controller
         ];
         $rendered = strtr($html, $replacements);
         foreach ($fields as $k => $v) {
-            $rendered = str_replace('{{' . $k . '}}', (string) $v, $rendered);
+            $rendered = str_replace('{{'.$k.'}}', (string) $v, $rendered);
         }
         $pdfData = Pdf::loadHTML($rendered)->setPaper('a4')->output();
         $dir = 'certificates';
-        $filename = $number . '.pdf';
-        $path = $dir . '/' . $filename;
+        $filename = $number.'.pdf';
+        $path = $dir.'/'.$filename;
         Storage::disk('local')->put($path, $pdfData);
         $certificate->metadata = array_merge($certificate->metadata ?? [], ['archived_pdf_path' => $path]);
         $certificate->save();
@@ -201,7 +201,7 @@ class CertificateController extends Controller
             $detailsRows[] = ['License Expires', $license->expires_at?->toDateString() ?: '—'];
         }
         if ($apartment) {
-            $detailsRows[] = ['Apartment Contact', $apartment->contact_name . ' (' . $apartment->contact_phone . ')'];
+            $detailsRows[] = ['Apartment Contact', $apartment->contact_name.' ('.$apartment->contact_phone.')'];
             $detailsRows[] = ['Apartment City', $apartment->address_city];
         }
         if ($organization) {
@@ -209,19 +209,19 @@ class CertificateController extends Controller
             $detailsRows[] = ['Org Registration', $organization->registration_number ?: '—'];
         }
         if ($serviceReq) {
-            $detailsRows[] = ['Service Request', ($serviceReq->service?->name ?? 'Service') . ' • ' . $serviceReq->status];
+            $detailsRows[] = ['Service Request', ($serviceReq->service?->name ?? 'Service').' • '.$serviceReq->status];
         }
         $entityDetailsHtml = '<table style="width:100%;border-collapse:collapse">';
         foreach ($detailsRows as $row) {
-            $entityDetailsHtml .= '<tr><td style="padding:6px;border:1px solid #ddd"><strong>' . e($row[0]) . '</strong></td><td style="padding:6px;border:1px solid #ddd">' . e($row[1]) . '</td></tr>';
+            $entityDetailsHtml .= '<tr><td style="padding:6px;border:1px solid #ddd"><strong>'.e($row[0]).'</strong></td><td style="padding:6px;border:1px solid #ddd">'.e($row[1]).'</td></tr>';
         }
         $entityDetailsHtml .= '</table>';
 
         $uid = (string) Str::uuid();
-        $number = 'IPAMS-COC-' . date('Y') . '-' . substr($anchorProject->id, 0, 8) . '-' . $service->id . '-' . substr($uid, 0, 8);
+        $number = 'IPAMS-COC-'.date('Y').'-'.substr($anchorProject->id, 0, 8).'-'.$service->id.'-'.substr($uid, 0, 8);
         $standardId = StandardIdentifier::normalize('project', $anchorProject->id);
         $issuedAt = now()->toDateString();
-        $title = $service->name . ' Certificate';
+        $title = $service->name.' Certificate';
         $hash = hash('sha256', implode('|', [
             $uid,
             $number,
@@ -247,7 +247,7 @@ class CertificateController extends Controller
                     'standardized_id' => $standardId,
                     'entity_classification' => $classification,
                     'entity_details_html' => $entityDetailsHtml,
-                    'officer_signature_name' => optional(Auth::user())->first_name . ' ' . optional(Auth::user())->last_name,
+                    'officer_signature_name' => optional(Auth::user())->first_name.' '.optional(Auth::user())->last_name,
                 ],
                 'format_options' => ['pdf' => true],
             ],
@@ -262,12 +262,11 @@ class CertificateController extends Controller
         $certificate->metadata = array_merge($certificate->metadata ?? [], ['fields' => $fields]);
         $certificate->save();
 
-
-        $html = '<div class="p-4" style="font-family:Arial,sans-serif"><div class="d-flex align-items-center mb-3"><h3 class="mb-0" style="margin:0;padding:0">' . e($title) . '</h3></div><div class="mb-2">Service: ' . e($service->name) . '</div><div class="mb-2">Date: ' . e($issuedAt) . '</div><div class="mb-2">UID: ' . e($uid) . '</div><div class="mb-2">Standardized ID: ' . e($standardId) . '</div><hr><div class="mb-2"><strong>Entity Classification</strong>: ' . e($classification) . '</div><div class="mb-3"><strong>Details</strong></div>' . $entityDetailsHtml . '<hr><div class="d-flex align-items-center gap-3"><div>' . $qrSvg . '</div><div style="font-size:12px">Verify: ' . e($verificationLink) . '</div></div><div class="mt-3" style="font-size:12px">Authorizing Officer: ' . e($fields['officer_signature_name'] ?? 'Officer') . '</div></div>';
+        $html = '<div class="p-4" style="font-family:Arial,sans-serif"><div class="d-flex align-items-center mb-3"><h3 class="mb-0" style="margin:0;padding:0">'.e($title).'</h3></div><div class="mb-2">Service: '.e($service->name).'</div><div class="mb-2">Date: '.e($issuedAt).'</div><div class="mb-2">UID: '.e($uid).'</div><div class="mb-2">Standardized ID: '.e($standardId).'</div><hr><div class="mb-2"><strong>Entity Classification</strong>: '.e($classification).'</div><div class="mb-3"><strong>Details</strong></div>'.$entityDetailsHtml.'<hr><div class="d-flex align-items-center gap-3"><div>'.$qrSvg.'</div><div style="font-size:12px">Verify: '.e($verificationLink).'</div></div><div class="mt-3" style="font-size:12px">Authorizing Officer: '.e($fields['officer_signature_name'] ?? 'Officer').'</div></div>';
         $pdfData = Pdf::loadHTML($html)->setPaper('a4')->output();
         $dir = 'certificates';
-        $filename = $number . '.pdf';
-        $path = $dir . '/' . $filename;
+        $filename = $number.'.pdf';
+        $path = $dir.'/'.$filename;
 
         Storage::disk('local')->put($path, $pdfData);
         $certificate->metadata = array_merge($certificate->metadata ?? [], ['archived_pdf_path' => $path, 'verification_link' => $verificationLink]);
@@ -285,43 +284,43 @@ class CertificateController extends Controller
             'action' => 'notify_sms',
             'target_type' => 'Certificate',
             'target_id' => (string) $certificate->id,
-            'details' => ['to' => $phone, 'message' => 'Certificate issued. Link: ' . $verificationLink],
+            'details' => ['to' => $phone, 'message' => 'Certificate issued. Link: '.$verificationLink],
         ]);
 
         return redirect()->route('admin.certificates.show', $certificate)->with('status', 'Certificate generated from phone lookup');
     }
 
-public function download(Request $request, Certificate $certificate)
-{
-    $service = optional($certificate->service);
-    $meta = $certificate->metadata ?? [];
+    public function download(Request $request, Certificate $certificate)
+    {
+        $service = optional($certificate->service);
+        $meta = $certificate->metadata ?? [];
 
-    // --- Design Parameters ---
-    $issuedDate = $certificate->issued_at?->format('d/m/Y') ?? now()->format('d/m/Y');
-    $brandPrimary = '#1a4a8e';
-    $brandGold = '#d4af37';
-    $brandRed = '#ce1126';
-    $brandLightBlue = '#4189dd';
+        // --- Design Parameters ---
+        $issuedDate = $certificate->issued_at?->format('d/m/Y') ?? now()->format('d/m/Y');
+        $brandPrimary = '#1a4a8e';
+        $brandGold = '#d4af37';
+        $brandRed = '#ce1126';
+        $brandLightBlue = '#4189dd';
 
-    // Remove question marks and clean text
-    $recipientName = mb_strtoupper((string) ($certificate->issued_to ?? $meta['fields']['recipient_name'] ?? ''));
-    $recipientName = $recipientName ?: '__________________________';
-    $recipientName = str_replace('?', '', $recipientName);
+        // Remove question marks and clean text
+        $recipientName = mb_strtoupper((string) ($certificate->issued_to ?? $meta['fields']['recipient_name'] ?? ''));
+        $recipientName = $recipientName ?: '__________________________';
+        $recipientName = str_replace('?', '', $recipientName);
 
-    $officerName = (string) ($meta['fields']['officer_signature_name'] ?? $meta['officer_signature_name'] ?? 'DR. YUSUF HUSSEIN JIMALE');
-    $officerName = str_replace('?', '', $officerName);
+        $officerName = (string) ($meta['fields']['officer_signature_name'] ?? $meta['officer_signature_name'] ?? 'DR. YUSUF HUSSEIN JIMALE');
+        $officerName = str_replace('?', '', $officerName);
 
-    $officerTitle = (string) ($meta['fields']['officer_title'] ?? $meta['officer_title'] ?? 'GUDOOMIYE KU-XIGEENKA');
-    $officerTitle = str_replace('?', '', $officerTitle);
+        $officerTitle = (string) ($meta['fields']['officer_title'] ?? $meta['officer_title'] ?? 'GUDOOMIYE KU-XIGEENKA');
+        $officerTitle = str_replace('?', '', $officerTitle);
 
-    $uid = (string) $certificate->certificate_uid;
-    $serviceName = (string) ($service?->name ?? 'DIIWAANGELINTA GURIGA DABAQA');
-    $serviceName = str_replace('?', '', $serviceName);
+        $uid = (string) $certificate->certificate_uid;
+        $serviceName = (string) ($service?->name ?? 'DIIWAANGELINTA GURIGA DABAQA');
+        $serviceName = str_replace('?', '', $serviceName);
 
-    $certNumber = 'BRA/CS/' . date('Y') . '/' . str_pad($uid, 5, '0', STR_PAD_LEFT);
-    $verifyCode = 'BRA-CS-' . substr(strtoupper(hash('crc32', $uid . 'BANAADIR2024')), 0, 8);
+        $certNumber = 'BRA/CS/'.date('Y').'/'.str_pad($uid, 5, '0', STR_PAD_LEFT);
+        $verifyCode = 'BRA-CS-'.substr(strtoupper(hash('crc32', $uid.'BANAADIR2024')), 0, 8);
 
-    $html = '
+        $html = '
 <!DOCTYPE html>
 <html lang="so">
 <head>
@@ -402,7 +401,7 @@ public function download(Request $request, Certificate $certificate)
                         <div class="info-item"><span class="info-label">Bixiyay:</span> Waaxda Dhismo Wadaagga</div>
                     </div>
 
-        
+
 
                     <div class="verification-area">
 
@@ -415,7 +414,7 @@ public function download(Request $request, Certificate $certificate)
                         <div>RASMI AH</div>
                         <div>GUDOOMIYE</div>
                         <div>BANAADIR</div>
-                        <div>'.date("Y").'</div>
+                        <div>'.date('Y').'</div>
                     </div>
                 </div>
             </div>
@@ -424,28 +423,29 @@ public function download(Request $request, Certificate $certificate)
 </body>
 </html>';
 
-    // Final clean-up of any question marks that might have sneaked into the HTML string
-    $html = str_replace('?', '', $html);
+        // Final clean-up of any question marks that might have sneaked into the HTML string
+        $html = str_replace('?', '', $html);
 
-    $pdf = Pdf::loadHTML($html)
-        ->setPaper('a4', 'landscape')
-        ->setOptions([
-            'dpi' => 300,
-            'isRemoteEnabled' => true,
-            'defaultFont' => 'dejavu sans'
-        ]);
+        $pdf = Pdf::loadHTML($html)
+            ->setPaper('a4', 'landscape')
+            ->setOptions([
+                'dpi' => 300,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'dejavu sans',
+            ]);
 
-    $safeName = preg_replace('/[^\w\-\.]+/', '_', str_replace('?', '', $recipientName));
-    return $pdf->download('Certificate_' . $safeName . '.pdf');
-}
+        $safeName = preg_replace('/[^\w\-\.]+/', '_', str_replace('?', '', $recipientName));
+
+        return $pdf->download('Certificate_'.$safeName.'.pdf');
+    }
 
     public function template(Service $service)
     {
         $template = CertificateTemplate::where('service_id', $service->id)->first();
         if (! $template) {
             return response()->json([
-                'template_slug' => 'default-' . $service->slug,
-                'template_name' => $service->name . ' Certificate',
+                'template_slug' => 'default-'.$service->slug,
+                'template_name' => $service->name.' Certificate',
                 'variables_schema' => [
                     ['key' => 'organization_name', 'type' => 'text', 'label' => 'Organization Name', 'required' => false],
                     ['key' => 'logo_url', 'type' => 'text', 'label' => 'Logo URL', 'required' => false],

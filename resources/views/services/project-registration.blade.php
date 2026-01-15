@@ -40,6 +40,16 @@
           <div class="card">
             <div class="card-body">
               <h5 class="mb-4">Your Details</h5>
+              @if ($errors->any())
+                <div class="alert alert-danger">
+                  <div class="fw-bold mb-2">Please check your entries:</div>
+                  <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                      <li>{{ $error }}</li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endif
               <form method="POST" action="{{ route('services.project-registration.store') }}">
                 @csrf
                 <div class="row">
