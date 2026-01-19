@@ -16,6 +16,9 @@
                 <p><strong>Address:</strong> {{ $apartment->address_street }}, {{ $apartment->address_city }}, {{ $apartment->address_state }} {{ $apartment->address_zip }}</p>
                 <p><strong>Contact:</strong> {{ $apartment->contact_name }} ({{ $apartment->contact_phone }}, {{ $apartment->contact_email }})</p>
                 <p><strong>Notes:</strong> {{ $apartment->notes ?? 'N/A' }}</p>
+                <div class="mt-3">
+                    <a href="{{ route('admin.ownership.index', ['apartment_id' => $apartment->id]) }}" class="btn btn-primary">Start Ownership Claim</a>
+                </div>
 
                 <hr>
 

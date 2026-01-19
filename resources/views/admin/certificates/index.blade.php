@@ -41,6 +41,6 @@
         </tbody>
       </table>
     </div>
-    {{ $certs->links() }}
+    <x-pagination :paginator="$certs" />
   </div>
 @endsection

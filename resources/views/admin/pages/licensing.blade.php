@@ -41,75 +41,43 @@
       <table class="table align-middle">
         <thead>
           <tr>
+            <th>Approval ID</th>
             <th>Company</th>
             <th>Type</th>
             <th>Status</th>
             <th>Verification</th>
             <th>Expires</th>
-            <th>Submitted</th>
+            <th>Last Modified</th>
+            <th>Modified By</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           @forelse ($licenses as $l)
             <tr>
+              @php($lastChange = \App\Models\BusinessLicenseChange::where('license_id', $l->id)->latest()->first())
+              <td class="text-muted small">{{ $l->id }}</td>
               <td>
                 <div class="fw-bold">{{ $l->company_name }}</div>
                 <div class="text-muted small">Project: {{ $l->project_id ?: '—' }}</div>
               </td>
               <td>{{ $l->license_type }}</td>
               <td>
-                @php
-                  $badge = match ($l->status) {
-                    'pending' => 'bg-warning',
-                    'approved' => 'bg-success',
-                    'rejected' => 'bg-danger',
-                    default => 'bg-light text-dark',
-                  };
-                @endphp
-                <span class="badge {{ $badge }}">{{ ucfirst($l->status) }}</span>
+                <span class="badge {{ $l->status_badge_class }}">{{ ucfirst($l->status) }}</span>
               </td>
               <td>{{ ucfirst($l->verification_status) }}</td>
               <td>{{ $l->expires_at ? \Illuminate\Support\Carbon::parse($l->expires_at)->toDateString() : '—' }}</td>
-              <td>{{ $l->created_at?->toDateTimeString() }}</td>
+              <td>{{ $lastChange?->created_at?->toDateTimeString() ?? $l->updated_at?->toDateTimeString() ?? '—' }}</td>
+              <td>
+                @php($modUser = $lastChange ? \App\Models\User::find($lastChange->changed_by) : null)
+                {{ $modUser ? ($modUser->first_name.' '.$modUser->last_name) : '—' }}
+              </td>
               <td class="text-end">
-                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#edit-{{ $l->id }}">Edit</button>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.licensing.edit', $l) }}">Manage</a>
                 <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approve-{{ $l->id }}" @disabled($l->status==='approved')>Approve</button>
                 <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#reject-{{ $l->id }}" @disabled($l->status==='rejected')>Reject</button>
               </td>
             </tr>
-            <div class="modal fade" id="edit-{{ $l->id }}" tabindex="-1" aria-hidden="true">
-              <div class="modal-dialog">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title">Edit License</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <form method="POST" action="{{ route('admin.licensing.update', $l) }}">
-                    @csrf
-                    @method('PUT')
-                    <div class="modal-body">
-                      <div class="mb-3">
-                        <label class="form-label">Verification status</label>
-                        <select name="verification_status" class="form-select" required>
-                          @foreach (['unverified','verified'] as $v)
-                            <option value="{{ $v }}" @selected($l->verification_status===$v)>{{ ucfirst($v) }}</option>
-                          @endforeach
-                        </select>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label">Expiration date</label>
-                        <input name="expires_at" type="date" class="form-control" value="{{ $l->expires_at?->toDateString() }}">
-                      </div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                      <button type="submit" class="btn btn-primary">Save</button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
             <div class="modal fade" id="approve-{{ $l->id }}" tabindex="-1" aria-hidden="true">
               <div class="modal-dialog">
                 <div class="modal-content">
@@ -161,7 +129,7 @@
       </table>
     </div>
     <div class="mt-3">
-      {{ $licenses->links() }}
+      <x-pagination :paginator="$licenses" />
     </div>
   </div>
 </div>

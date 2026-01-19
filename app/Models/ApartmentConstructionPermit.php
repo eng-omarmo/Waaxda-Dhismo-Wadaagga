@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ApartmentConstructionPermit extends Model
 {
@@ -24,10 +25,25 @@ class ApartmentConstructionPermit extends Model
         'permit_issue_date',
         'permit_expiry_date',
         'permit_status',
+        'approval_notes',
+        'approval_signature_svg',
+        'approved_by_admin_id',
+        'approved_at',
     ];
 
     protected $casts = [
         'permit_issue_date' => 'date',
         'permit_expiry_date' => 'date',
+        'approved_at' => 'datetime',
     ];
+
+    public function landParcel(): BelongsTo
+    {
+        return $this->belongsTo(LandParcel::class, 'land_plot_number', 'plot_number');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by_admin_id');
+    }
 }

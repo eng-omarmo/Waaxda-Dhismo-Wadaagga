@@ -28,36 +28,37 @@ class SelfServiceServiceIdTest extends TestCase
     {
         $service = Service::create([
             'name' => 'Test Service',
-            'slug' => 'test-service-'.Str::lower(Str::random(6)),
+            'slug' => 'test-service-' . Str::lower(Str::random(6)),
             'description' => 'Desc',
             'price' => 10.00,
             'icon_color' => 'bg-primary',
             'icon_class' => 'bi-gear',
         ]);
 
-        $response = $this->get('/portal?serviceId='.$service->id);
+        $response = $this->get('/portal?serviceId=' . $service->id);
         $response->assertStatus(302);
         $response->assertRedirect('/portal/info');
     }
 
-    public function test_start_with_missing_service_id_renders_select_service(): void
+    public function test_start_with_missing_service_id_redirects_to_landing(): void
     {
         $response = $this->get('/portal');
-        $response->assertStatus(200);
-        $response->assertSee('Choose a service');
+        $response->assertStatus(302);
+        $response->assertRedirect('/');
     }
 
-    public function test_start_with_malformed_service_id_returns_400(): void
+    public function test_start_with_malformed_service_id_redirects_to_landing(): void
     {
         $response = $this->get('/portal?serviceId=abc');
-        $response->assertStatus(400);
+        $response->assertStatus(302);
+        $response->assertRedirect('/');
     }
 
     public function test_store_with_valid_service_id_redirects_to_info(): void
     {
         $service = Service::create([
             'name' => 'Test Service 2',
-            'slug' => 'test-service-'.Str::lower(Str::random(6)),
+            'slug' => 'test-service-' . Str::lower(Str::random(6)),
             'description' => 'Desc',
             'price' => 20.00,
             'icon_color' => 'bg-primary',
@@ -66,19 +67,21 @@ class SelfServiceServiceIdTest extends TestCase
 
         $response = $this->post('/portal/service', ['serviceId' => $service->id]);
         $response->assertStatus(302);
-        $response->assertRedirect('/portal/info');
+        $response->assertRedirect('/portal?serviceId=' . $service->id);
     }
 
-    public function test_store_with_missing_service_id_returns_400(): void
+    public function test_store_with_missing_service_id_redirects_to_landing(): void
     {
         $response = $this->post('/portal/service', []);
-        $response->assertStatus(400);
+        $response->assertStatus(302);
+        $response->assertRedirect('/');
     }
 
-    public function test_store_with_malformed_service_id_returns_400(): void
+    public function test_store_with_malformed_service_id_redirects_to_landing(): void
     {
         $response = $this->post('/portal/service', ['serviceId' => 'xyz']);
-        $response->assertStatus(400);
+        $response->assertStatus(302);
+        $response->assertRedirect('/');
     }
 
     public function test_pay_requires_service_id_when_registration_missing_service(): void
@@ -100,7 +103,7 @@ class SelfServiceServiceIdTest extends TestCase
     {
         $service = Service::create([
             'name' => 'Pay Service',
-            'slug' => 'pay-service-'.Str::lower(Str::random(6)),
+            'slug' => 'pay-service-' . Str::lower(Str::random(6)),
             'description' => 'Desc',
             'price' => 30.00,
             'icon_color' => 'bg-primary',
@@ -114,7 +117,7 @@ class SelfServiceServiceIdTest extends TestCase
             'resume_token' => (string) \Illuminate\Support\Str::uuid(),
             'data' => [],
         ]);
-        $response = $this->withSession(['portal_reg_id' => $reg->id])->get('/portal/pay?serviceId='.$service->id);
+        $response = $this->withSession(['portal_reg_id' => $reg->id])->get('/portal/pay?serviceId=' . $service->id);
         $response->assertStatus(200);
         $response->assertSee('Amount due');
     }

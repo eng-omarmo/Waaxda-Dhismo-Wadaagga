@@ -32,7 +32,8 @@ class AdminOrganizationController extends Controller
         } else {
             $query->orderBy('created_at', $direction === 'asc' ? 'asc' : 'desc');
         }
-        $organizations = $query->paginate(10)->withQueryString();
+        $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
+        $organizations = $query->paginate($perPage)->withQueryString();
         $statuses = ['pending', 'approved', 'rejected'];
 
         return view('admin.pages.organizations', compact('organizations', 'statuses', 'sort', 'direction'));

@@ -65,7 +65,7 @@
                         </tbody>
                     </table>
                 </div>
-                {{ $permits->links() }}
+                <x-pagination :paginator="$permits" />
             </div>
         </div>
     </div>

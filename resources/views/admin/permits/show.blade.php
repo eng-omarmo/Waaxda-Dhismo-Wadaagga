@@ -49,8 +49,98 @@
                 <p><strong>Status:</strong> <span class="badge bg-{{ $permit->permit_status == 'Approved' ? 'success' : ($permit->permit_status == 'Pending' ? 'warning' : 'danger') }}">{{ $permit->permit_status }}</span></p>
                 <p><strong>Issue Date:</strong> {{ $permit->permit_issue_date ? $permit->permit_issue_date->format('Y-m-d') : 'N/A' }}</p>
                 <p><strong>Expiry Date:</strong> {{ $permit->permit_expiry_date ? $permit->permit_expiry_date->format('Y-m-d') : 'N/A' }}</p>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <form method="POST" action="{{ route('admin.permits.approve', $permit) }}">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">Approval Notes</label>
+                                <textarea name="approval_notes" class="form-control" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Electronic Signature</label>
+                                <div class="border rounded p-2">
+                                    <canvas id="permitSignaturePad" width="600" height="180" style="width:100%" aria-label="Signature pad"></canvas>
+                                </div>
+                                <input type="hidden" name="digital_signature_svg" id="permitSignatureData" required>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="permitClearSignature">Clear</button>
+                            </div>
+                            <button type="submit" class="btn btn-success">Approve Permit</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="POST" action="{{ route('admin.permits.reject', $permit) }}">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">Rejection Reason</label>
+                                <textarea name="rejection_reason" class="form-control" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-danger">Reject Permit</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('page-scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var canvas = document.getElementById('permitSignaturePad');
+  var clearBtn = document.getElementById('permitClearSignature');
+  var hidden = document.getElementById('permitSignatureData');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var drawing = false;
+  var lastPos = { x: 0, y: 0 };
+  function getPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    var y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: x, y: y };
+  }
+  function updateHidden() {
+    var dataUrl = canvas.toDataURL('image/png');
+    hidden.value = dataUrl;
+  }
+  canvas.addEventListener('mousedown', function(e) { drawing = true; lastPos = getPos(e); });
+  canvas.addEventListener('mousemove', function(e) {
+    if (!drawing) return;
+    var pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x, lastPos.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    lastPos = pos;
+    updateHidden();
+  });
+  canvas.addEventListener('mouseup', function() { drawing = false; updateHidden(); });
+  canvas.addEventListener('mouseleave', function() { drawing = false; });
+  canvas.addEventListener('touchstart', function(e) { drawing = true; lastPos = getPos(e); }, {passive:true});
+  canvas.addEventListener('touchmove', function(e) {
+    if (!drawing) return;
+    var pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x, lastPos.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    lastPos = pos;
+    updateHidden();
+  }, {passive:true});
+  canvas.addEventListener('touchend', function() { drawing = false; updateHidden(); });
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      hidden.value = '';
+    });
+  }
+});
+</script>
+@endpush

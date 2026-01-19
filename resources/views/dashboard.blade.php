@@ -191,6 +191,84 @@
                 </div>
             </div>
         </div>
+        <div class="card">
+            <div class="card-header">
+                <h4>Payments – Status Summary</h4>
+            </div>
+            <div class="card-body">
+                @php
+                    $pvSummary = \App\Models\PaymentVerification::selectRaw('status, COUNT(*) as cnt, SUM(amount) as total')
+                        ->groupBy('status')->get()->keyBy('status');
+                    $pvStatuses = ['pending','verified','rejected','discrepancy'];
+                @endphp
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th class="text-end">Count</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($pvStatuses as $s)
+                                @php
+                                    $row = $pvSummary[$s] ?? null;
+                                    $count = $row?->cnt ?? 0;
+                                    $total = $row?->total ?? 0;
+                                    $badge = $s==='verified' ? 'bg-success' : ($s==='pending' ? 'bg-warning' : ($s==='rejected' ? 'bg-danger' : 'bg-secondary'));
+                                @endphp
+                                <tr>
+                                    <td><span class="badge {{ $badge }}">{{ ucfirst($s) }}</span></td>
+                                    <td class="text-end">{{ number_format($count) }}</td>
+                                    <td class="text-end">${{ number_format($total, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @php
+            $recentPayments = \App\Models\PaymentVerification::with(['request.service','verifier'])->latest()->limit(10)->get();
+        @endphp
+        <div class="card">
+            <div class="card-header">
+                <h4>Recent Payments</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Service</th>
+                                <th class="text-end">Amount</th>
+                                <th>Status</th>
+                                <th>Verified</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($recentPayments as $pv)
+                                @php
+                                    $svc = $pv->request?->service?->name ?? '—';
+                                    $badge = $pv->status==='verified' ? 'bg-success' : ($pv->status==='pending' ? 'bg-warning' : ($pv->status==='rejected' ? 'bg-danger' : 'bg-secondary'));
+                                @endphp
+                                <tr>
+                                    <td class="text-muted">{{ $pv->reference_number }}</td>
+                                    <td>{{ $svc }}</td>
+                                    <td class="text-end">${{ number_format($pv->amount,2) }}</td>
+                                    <td><span class="badge {{ $badge }}">{{ ucfirst($pv->status) }}</span></td>
+                                    <td>{{ $pv->verified_at?->format('Y-m-d H:i') ?? '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5" class="text-center text-muted">No payments found.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="col-12 col-lg-3">
         @php

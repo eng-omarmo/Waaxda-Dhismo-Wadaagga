@@ -62,7 +62,7 @@
                     </table>
                 </div>
 
-                {{ $services->links() }}
+                <x-pagination :paginator="$services" />
             </div>
         </div>
     </div>

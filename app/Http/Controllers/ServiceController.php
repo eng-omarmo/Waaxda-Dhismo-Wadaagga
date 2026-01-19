@@ -12,7 +12,8 @@ class ServiceController extends Controller
      */
     public function index()
     {
-        $services = Service::latest()->paginate(10);
+        $perPage = min(max((int) request()->query('per_page', 10), 1), 100);
+        $services = Service::latest()->paginate($perPage)->withQueryString();
 
         return view('admin.services.index', compact('services'));
     }

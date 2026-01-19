@@ -24,6 +24,9 @@
         @if($request->processed_at)
         <div class="mb-2">Processed: {{ $request->processed_at->format('Y-m-d H:i') }}</div>
         @endif
+        <div class="mt-3">
+          <a class="btn btn-primary" href="{{ route('admin.manual-requests.form', $request) }}">Open Data Collection Form</a>
+        </div>
       </div>
     </div>
 

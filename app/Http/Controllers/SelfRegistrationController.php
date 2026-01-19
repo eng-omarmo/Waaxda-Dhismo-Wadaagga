@@ -8,6 +8,7 @@ use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -16,30 +17,104 @@ class SelfRegistrationController extends Controller
 {
     public function start()
     {
-        return view('register.step1');
+        $amount = (float) env('REGISTRATION_FEE', 25.00);
+        return view('register.unified', compact('amount'));
     }
 
     public function storeStep1(Request $request)
     {
+        // Legacy route - redirect to unified form
+        return redirect()->route('register.start');
+    }
+
+    public function complete(Request $request)
+    {
+        $amount = (float) env('REGISTRATION_FEE', 25.00);
+
+        // Validate all registration and payment fields
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:50'],
+            'payment_method' => ['required', 'in:card,paypal'],
+            'card_name' => ['required_if:payment_method,card', 'string', 'max:255'],
+            'card_number' => ['required_if:payment_method,card', 'string', 'min:12', 'max:19'],
+            'card_expiry' => ['required_if:payment_method,card', 'string', 'regex:/^(0[1-9]|1[0-2])\/\d{2}$/'],
+            'card_cvc' => ['required_if:payment_method,card', 'string', 'min:3', 'max:4'],
+        ], [
+            'email.unique' => 'An account with this email already exists. Please login instead.',
+            'card_expiry.regex' => 'Expiry must be in MM/YY format',
         ]);
 
-        $reg = PendingRegistration::create([
-            'full_name' => $validated['full_name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'status' => 'draft',
-            'step' => 2,
-            'resume_token' => (string) Str::uuid(),
-            'data' => [],
-        ]);
+        try {
+            // Create pending registration
+            $reg = PendingRegistration::create([
+                'full_name' => $validated['full_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'status' => 'draft',
+                'step' => 2,
+                'resume_token' => (string) Str::uuid(),
+                'data' => [],
+            ]);
 
-        $request->session()->put('registration_id', $reg->id);
+            // Process payment
+            $provider = $validated['payment_method'] === 'paypal' ? 'paypal' : 'fake';
+            $status = 'succeeded';
+            $transactionId = 'txn_'.Str::random(12);
 
-        return redirect()->route('register.step2');
+            $payment = OnlinePayment::create([
+                'pending_registration_id' => $reg->id,
+                'provider' => $provider,
+                'payment_method' => $validated['payment_method'],
+                'amount' => $amount,
+                'currency' => 'USD',
+                'status' => $status,
+                'transaction_id' => $transactionId,
+                'reference' => Str::upper(Str::random(8)),
+                'receipt_number' => 'IPAMS-ONL-'.str_pad((string) $reg->id, 6, '0', STR_PAD_LEFT),
+                'verified_at' => now(),
+                'metadata' => ['masked_card' => isset($validated['card_number']) ? substr(str_replace(' ', '', $validated['card_number']), -4) : null],
+            ]);
+
+            // Update registration status
+            $reg->status = 'paid';
+            $reg->step = 3;
+            $reg->save();
+
+            // Create user account
+            $password = Str::random(12);
+            $nameParts = explode(' ', trim($validated['full_name']), 2);
+            $user = User::create([
+                'email' => $validated['email'],
+                'password' => $password,
+                'first_name' => $nameParts[0] ?? $validated['full_name'],
+                'last_name' => $nameParts[1] ?? '',
+                'contact_phone' => $validated['phone'] ?? '',
+                'role' => 'user',
+                'active' => true,
+            ]);
+
+            // Log user in
+            Auth::login($user);
+
+            // Send confirmation email
+            $receiptUrl = URL::temporarySignedRoute('receipt.online.show', now()->addDays(7), ['payment' => $payment->id]);
+            try {
+                Mail::to($user->email)->send(new SelfRegistrationCompleted($user, $payment, $password, $receiptUrl));
+            } catch (\Throwable $e) {
+                // Log error but don't fail registration
+                Log::error('Failed to send registration email: ' . $e->getMessage());
+            }
+
+            return redirect()->route('dashboard')->with('status', 'Registration successful! Your account has been created and you are now logged in.');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Registration error: ' . $e->getMessage());
+            return back()->withErrors(['registration' => 'An error occurred during registration. Please try again or contact support if the problem persists.'])->withInput();
+        }
     }
 
     public function step2(Request $request)

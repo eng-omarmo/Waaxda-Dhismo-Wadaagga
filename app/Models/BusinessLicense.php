@@ -26,12 +26,15 @@ class BusinessLicense extends Model
         'registrant_name',
         'registrant_email',
         'registrant_phone',
+        'approved_by',
+        'approved_at',
     ];
 
     protected function casts(): array
     {
         return [
             'expires_at' => 'date',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -42,5 +45,26 @@ class BusinessLicense extends Model
                 $license->id = (string) Str::uuid();
             }
         });
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(BusinessLicenseDocument::class, 'license_id', 'id');
+    }
+
+    public function changes()
+    {
+        return $this->hasMany(BusinessLicenseChange::class, 'license_id', 'id');
+    }
+
+    public function getStatusBadgeClassAttribute(): string
+    {
+        $status = strtolower((string) $this->status);
+        return match ($status) {
+            'pending' => 'bg-warning',
+            'approved' => 'bg-success',
+            'rejected' => 'bg-danger',
+            default => 'bg-light text-dark',
+        };
     }
 }

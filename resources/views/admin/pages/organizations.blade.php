@@ -193,7 +193,7 @@
       </table>
     </div>
     <div class="mt-3">
-      {{ $organizations->links() }}
+      <x-pagination :paginator="$organizations" />
     </div>
   </div>
 </div>

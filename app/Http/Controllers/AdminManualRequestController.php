@@ -35,7 +35,8 @@ class AdminManualRequestController extends Controller
                     ->orWhere('user_phone', 'like', "%$q%");
             });
         }
-        $requests = $query->latest()->paginate(10)->withQueryString();
+        $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
+        $requests = $query->latest()->paginate($perPage)->withQueryString();
         $statuses = ['pending', 'verified', 'rejected', 'discrepancy'];
 
         return view('admin.manual.requests.index', compact('requests', 'statuses'));
@@ -70,6 +71,16 @@ class AdminManualRequestController extends Controller
             'status' => 'pending',
         ]);
 
+        $service = Service::find($sr->service_id);
+        $schema = $this->buildFormSchema($service);
+        $details = (array) $sr->request_details;
+        $details['form_schema'] = $schema;
+        $details['form_status'] = 'open';
+        $details['form_values'] = [];
+        $details['form_audit'] = [];
+        $sr->request_details = $details;
+        $sr->save();
+
         ManualOperationLog::create([
             'user_id' => Auth::id(),
             'action' => 'create_request',
@@ -78,7 +89,15 @@ class AdminManualRequestController extends Controller
             'details' => ['service_id' => $sr->service_id],
         ]);
 
-        return redirect()->route('admin.manual-requests.show', $sr)->with('status', 'Request created');
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'form_generated',
+            'target_type' => 'ServiceRequest',
+            'target_id' => (string) $sr->id,
+            'details' => ['schema_title' => $schema['title'] ?? 'Data Collection Form'],
+        ]);
+
+        return redirect()->route('admin.manual-requests.form', $sr)->with('status', 'Request created and form generated');
     }
 
     public function show(ServiceRequest $manual_request)
@@ -86,6 +105,151 @@ class AdminManualRequestController extends Controller
         $manual_request->load('service', 'payments');
 
         return view('admin.manual.requests.show', ['request' => $manual_request]);
+    }
+
+    public function form(ServiceRequest $manual_request)
+    {
+        $manual_request->load('service');
+        $details = (array) $manual_request->request_details;
+        $schema = (array) ($details['form_schema'] ?? []);
+        if (empty($schema)) {
+            $schema = $this->buildFormSchema($manual_request->service);
+            $details['form_schema'] = $schema;
+            $manual_request->request_details = $details;
+            $manual_request->save();
+        }
+        $values = (array) ($details['form_values'] ?? []);
+        return view('admin.manual.requests.form', [
+            'request' => $manual_request,
+            'schema' => $schema,
+            'values' => $values,
+        ]);
+    }
+
+    public function submitForm(Request $request, ServiceRequest $manual_request)
+    {
+        $manual_request->load('service');
+        $details = (array) $manual_request->request_details;
+        $schema = (array) ($details['form_schema'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
+        $rules = [];
+        foreach ($fields as $f) {
+            $name = (string) ($f['name'] ?? '');
+            if ($name === '') continue;
+            $base = match ($f['type'] ?? 'text') {
+                'email' => 'email',
+                'number' => 'numeric',
+                'date' => 'date',
+                'select' => 'string',
+                default => 'string',
+            };
+            $rule = [$base, 'max:2000'];
+            if (! empty($f['required'])) {
+                array_unshift($rule, 'required');
+            } else {
+                array_unshift($rule, 'nullable');
+            }
+            $rules["form_values.$name"] = $rule;
+        }
+        $validated = $request->validate($rules);
+        $newValues = (array) ($validated['form_values'] ?? []);
+        $oldValues = (array) ($details['form_values'] ?? []);
+        $changes = [];
+        foreach ($newValues as $k => $v) {
+            $prev = $oldValues[$k] ?? null;
+            if ((string) $prev !== (string) $v) {
+                $changes[$k] = ['from' => $prev, 'to' => $v];
+            }
+        }
+        $details['form_values'] = $newValues;
+        $audit = (array) ($details['form_audit'] ?? []);
+        $audit[] = [
+            'submitted_by' => Auth::id(),
+            'submitted_at' => now()->toDateTimeString(),
+            'changes' => $changes,
+            'values' => $newValues,
+        ];
+        $details['form_audit'] = $audit;
+        $manual_request->request_details = $details;
+        $manual_request->save();
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'form_submitted',
+            'target_type' => 'ServiceRequest',
+            'target_id' => (string) $manual_request->id,
+            'details' => ['fields_changed' => array_keys($changes)],
+        ]);
+
+        return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Form submitted and linked to request');
+    }
+
+    private function buildFormSchema(?Service $service): array
+    {
+        $slug = $service?->slug ?? '';
+        $title = 'Data Collection Form';
+        $instructions = 'Complete all required fields. Review for accuracy before submission.';
+        $fields = [];
+        if ($slug === 'project-registration') {
+            $title = 'Project Registration – Data Collection';
+            $fields = [
+                ['name' => 'project_name', 'label' => 'Project Name', 'type' => 'text', 'required' => true],
+                ['name' => 'location_text', 'label' => 'Location', 'type' => 'text', 'required' => true],
+                ['name' => 'developer_name', 'label' => 'Developer Name', 'type' => 'text', 'required' => false],
+                ['name' => 'registrant_national_id', 'label' => 'Registrant National ID', 'type' => 'text', 'required' => true],
+            ];
+        } elseif ($slug === 'business-license') {
+            $title = 'Business License – Data Collection';
+            $fields = [
+                ['name' => 'company_name', 'label' => 'Company Name', 'type' => 'text', 'required' => true],
+                ['name' => 'license_type', 'label' => 'License Type', 'type' => 'select', 'options' => ['Rental', 'Commercial'], 'required' => true],
+                ['name' => 'registrant_email', 'label' => 'Registrant Email', 'type' => 'email', 'required' => true],
+                ['name' => 'registrant_phone', 'label' => 'Registrant Phone', 'type' => 'text', 'required' => false],
+            ];
+        } elseif ($slug === 'construction-permit-application' || $slug === 'construction-permit') {
+            $title = 'Construction Permit – Data Collection';
+            $fields = [
+                ['name' => 'applicant_full_name', 'label' => 'Applicant Full Name', 'type' => 'text', 'required' => true],
+                ['name' => 'applicant_role', 'label' => 'Applicant Role', 'type' => 'select', 'options' => ['Owner', 'Legal Representative', 'Developer'], 'required' => true],
+                ['name' => 'plot_number', 'label' => 'Plot Number', 'type' => 'text', 'required' => true],
+                ['name' => 'land_title_number', 'label' => 'Land Title Number', 'type' => 'text', 'required' => false],
+                ['name' => 'land_size_sqm', 'label' => 'Land Size (sqm)', 'type' => 'number', 'required' => true],
+                ['name' => 'land_location_district', 'label' => 'Location District', 'type' => 'text', 'required' => true],
+            ];
+        } elseif ($slug === 'developer-registration' || $slug === 'organization-registration') {
+            $title = 'Organization Registration – Data Collection';
+            $fields = [
+                ['name' => 'organization_name', 'label' => 'Organization Name', 'type' => 'text', 'required' => true],
+                ['name' => 'registration_number', 'label' => 'Registration Number', 'type' => 'text', 'required' => false],
+                ['name' => 'contact_email', 'label' => 'Contact Email', 'type' => 'email', 'required' => true],
+                ['name' => 'contact_phone', 'label' => 'Contact Phone', 'type' => 'text', 'required' => true],
+            ];
+        } elseif ($slug === 'ownership-certificate') {
+            $title = 'Ownership Certificate – Data Collection';
+            $fields = [
+                ['name' => 'apartment_number', 'label' => 'Apartment Number', 'type' => 'text', 'required' => true],
+                ['name' => 'owner_name', 'label' => 'Owner Name', 'type' => 'text', 'required' => true],
+                ['name' => 'owner_national_id', 'label' => 'Owner National ID', 'type' => 'text', 'required' => true],
+            ];
+        } elseif ($slug === 'property-transfer-services' || $slug === 'ownership-transfer') {
+            $title = 'Ownership Transfer – Data Collection';
+            $fields = [
+                ['name' => 'previous_owner_name', 'label' => 'Previous Owner Name', 'type' => 'text', 'required' => true],
+                ['name' => 'previous_owner_id', 'label' => 'Previous Owner ID', 'type' => 'text', 'required' => true],
+                ['name' => 'new_owner_name', 'label' => 'New Owner Name', 'type' => 'text', 'required' => true],
+                ['name' => 'new_owner_id', 'label' => 'New Owner ID', 'type' => 'text', 'required' => true],
+                ['name' => 'transfer_reason', 'label' => 'Transfer Reason', 'type' => 'select', 'options' => ['Sale', 'Inheritance', 'Gift'], 'required' => true],
+            ];
+        } else {
+            $fields = [
+                ['name' => 'notes', 'label' => 'Notes', 'type' => 'text', 'required' => false],
+            ];
+        }
+        return [
+            'title' => $title,
+            'instructions' => $instructions,
+            'fields' => $fields,
+        ];
     }
 
     public function verifyPayment(Request $request, ServiceRequest $manual_request)

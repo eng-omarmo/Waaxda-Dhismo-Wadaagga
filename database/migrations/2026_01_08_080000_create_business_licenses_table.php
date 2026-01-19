@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('business_licenses', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('company_name');
-            $table->string('project_id')->nullable(); // UUID references projects.id
             $table->enum('license_type', ['Rental', 'Commercial']);
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->enum('verification_status', ['unverified', 'verified'])->default('unverified');

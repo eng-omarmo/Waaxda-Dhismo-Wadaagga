@@ -54,7 +54,7 @@
                 </tbody>
             </table>
         </div>
-        {{ $users->links() }}
+        <x-pagination :paginator="$users" />
     </div>
  </div>
 @endsection

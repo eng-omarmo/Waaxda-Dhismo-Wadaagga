@@ -11,7 +11,7 @@ class BusinessLicenseController extends Controller
 {
     public function show()
     {
-        return view('services.business-license');
+        return view('services.business-license-enhanced');
     }
 
     public function store(Request $request)

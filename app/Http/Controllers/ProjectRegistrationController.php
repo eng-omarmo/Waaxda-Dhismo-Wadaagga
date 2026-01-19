@@ -9,7 +9,7 @@ class ProjectRegistrationController extends Controller
 {
     public function show()
     {
-        return view('services.project-registration');
+        return view('services.project-registration-enhanced');
     }
 
     public function store(Request $request)

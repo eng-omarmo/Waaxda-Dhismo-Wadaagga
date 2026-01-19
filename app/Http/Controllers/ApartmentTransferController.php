@@ -30,7 +30,8 @@ class ApartmentTransferController extends Controller
         if (request()->filled('to')) {
             $query->whereDate('transfer_date', '<=', request()->string('to')->toString());
         }
-        $ApartmentTransfer = $query->paginate(10)->withQueryString();
+        $perPage = min(max((int) request()->query('per_page', 10), 1), 100);
+        $ApartmentTransfer = $query->paginate($perPage)->withQueryString();
 
         return view('admin.apartments.Transfer.index', [
             'transfers' => $ApartmentTransfer,

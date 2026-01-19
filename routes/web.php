@@ -18,6 +18,8 @@ Route::get('/dashboard', function () {
 });
 
 Route::get('/register/start', [\App\Http\Controllers\SelfRegistrationController::class, 'start'])->name('register.start');
+Route::post('/register/complete', [\App\Http\Controllers\SelfRegistrationController::class, 'complete'])->name('register.complete');
+// Legacy routes for backward compatibility
 Route::post('/register/step1', [\App\Http\Controllers\SelfRegistrationController::class, 'storeStep1'])->name('register.step1.store');
 Route::get('/register/step2', [\App\Http\Controllers\SelfRegistrationController::class, 'step2'])->name('register.step2');
 Route::post('/register/pay', [\App\Http\Controllers\SelfRegistrationController::class, 'processPayment'])->name('register.pay');
@@ -107,19 +109,42 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Construction Permits
     Route::resource('permits', \App\Http\Controllers\ApartmentConstructionPermitController::class)->names('permits');
     Route::get('permits/{permit}/download', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'downloadDrawing'])->name('permits.download');
+    Route::post('permits/{permit}/approve', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'approve'])->name('permits.approve');
+    Route::post('permits/{permit}/reject', [\App\Http\Controllers\ApartmentConstructionPermitController::class, 'reject'])->name('permits.reject');
 
     // Apartment (Building) Management
     Route::view('/buildings', 'admin.pages.buildings')->name('buildings');
     Route::resource('apartments', \App\Http\Controllers\ApartmentController::class);
 
     Route::get('/licensing', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'index'])->name('licensing.index');
+    Route::get('/licensing/{license}/edit', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'edit'])->name('licensing.edit');
+    Route::put('/licensing/{license}/save', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'save'])->name('licensing.save');
     Route::post('/licensing/{license}/approve', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'approve'])->name('licensing.approve');
     Route::post('/licensing/{license}/reject', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'reject'])->name('licensing.reject');
     Route::put('/licensing/{license}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'update'])->name('licensing.update');
     Route::get('/licensing/{license}/documents/{docId}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'downloadDoc'])->name('licensing.documents.download');
     // add issue licence
     Route::get('/new-business-license', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'displayIssuePage'])->name('licensing.issue');
-    Route::view('/ownership', 'admin.pages.ownership')->name('ownership');
+    Route::get('/ownership', [\App\Http\Controllers\AdminOwnershipController::class, 'index'])->name('ownership.index');
+    Route::post('/ownership', [\App\Http\Controllers\AdminOwnershipController::class, 'store'])->name('ownership.store');
+    Route::put('/ownership/{claim}', [\App\Http\Controllers\AdminOwnershipController::class, 'update'])->name('ownership.update');
+    Route::post('/ownership/{claim}/approve', [\App\Http\Controllers\AdminOwnershipController::class, 'approve'])->name('ownership.approve');
+    Route::post('/ownership/{claim}/reject', [\App\Http\Controllers\AdminOwnershipController::class, 'reject'])->name('ownership.reject');
+    Route::get('/ownership/{claim}/documents/{index}', [\App\Http\Controllers\AdminOwnershipController::class, 'viewDoc'])->whereNumber('index')->name('ownership.documents.view');
+
+    // Land Ownership Verification
+    Route::get('/land-parcels', [\App\Http\Controllers\LandParcelController::class, 'index'])->name('land-parcels.index');
+    Route::get('/land-parcels/create', [\App\Http\Controllers\LandParcelController::class, 'create'])->name('land-parcels.create');
+    Route::post('/land-parcels', [\App\Http\Controllers\LandParcelController::class, 'store'])->name('land-parcels.store');
+    Route::get('/land-parcels/{landParcel}', [\App\Http\Controllers\LandParcelController::class, 'show'])->name('land-parcels.show');
+    Route::post('/land-parcels/{landParcel}/verify', [\App\Http\Controllers\LandParcelController::class, 'verify'])->name('land-parcels.verify');
+
+    Route::get('/land-verifications', [\App\Http\Controllers\LandOwnershipVerificationController::class, 'index'])->name('land-verifications.index');
+    Route::get('/land-verifications/create', [\App\Http\Controllers\LandOwnershipVerificationController::class, 'create'])->name('land-verifications.create');
+    Route::post('/land-verifications', [\App\Http\Controllers\LandOwnershipVerificationController::class, 'store'])->name('land-verifications.store');
+    Route::get('/land-verifications/{verification}', [\App\Http\Controllers\LandOwnershipVerificationController::class, 'show'])->name('land-verifications.show');
+    Route::post('/land-verifications/{verification}/process', [\App\Http\Controllers\LandOwnershipVerificationController::class, 'process'])->name('land-verifications.process');
+
     Route::get('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'index'])->name('apartment-transfers.index');
     Route::get('/transfers/create', [\App\Http\Controllers\ApartmentTransferController::class, 'create'])->name('apartment-transfers.create');
     Route::post('/transfers', [\App\Http\Controllers\ApartmentTransferController::class, 'store'])->name('apartment-transfers.store');
@@ -160,6 +185,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/manual-requests/create', [\App\Http\Controllers\AdminManualRequestController::class, 'create'])->name('manual-requests.create');
     Route::post('/manual-requests', [\App\Http\Controllers\AdminManualRequestController::class, 'store'])->name('manual-requests.store');
     Route::get('/manual-requests/{manual_request}', [\App\Http\Controllers\AdminManualRequestController::class, 'show'])->name('manual-requests.show');
+    Route::get('/manual-requests/{manual_request}/form', [\App\Http\Controllers\AdminManualRequestController::class, 'form'])->name('manual-requests.form');
+    Route::post('/manual-requests/{manual_request}/form', [\App\Http\Controllers\AdminManualRequestController::class, 'submitForm'])->name('manual-requests.form.submit');
     Route::post('/manual-requests/{manual_request}/verify-payment', [\App\Http\Controllers\AdminManualRequestController::class, 'verifyPayment'])->name('manual-requests.verify');
     Route::post('/manual-requests/{manual_request}/payments/{payment}/reconcile', [\App\Http\Controllers\AdminManualRequestController::class, 'reconcile'])->name('manual-requests.reconcile');
     Route::post('/manual-requests/{manual_request}/reject', [\App\Http\Controllers\AdminManualRequestController::class, 'reject'])->name('manual-requests.reject');

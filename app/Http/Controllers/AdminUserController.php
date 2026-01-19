@@ -26,7 +26,8 @@ class AdminUserController extends Controller
         if ($status = $request->string('status')->toString()) {
             $query->where('active', $status === 'active');
         }
-        $users = $query->latest()->paginate(10)->withQueryString();
+        $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
+        $users = $query->latest()->paginate($perPage)->withQueryString();
 
         return view('admin.users.index', compact('users'));
     }

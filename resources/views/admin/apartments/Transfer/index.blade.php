@@ -120,7 +120,7 @@
                 </div>
 
                 {{-- Pagination --}}
-                {{ $transfers->links() }}
+                <x-pagination :paginator="$transfers" />
 
             </div>
         </div>

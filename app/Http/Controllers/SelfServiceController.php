@@ -21,69 +21,38 @@ class SelfServiceController extends Controller
 {
     public function start()
     {
+        // Service ID is required - if not provided, redirect to landing page
         $serviceIdParam = request()->query('serviceId', request()->query('service'));
-        if ($serviceIdParam !== null) {
-            if (! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
-                Log::warning('Invalid serviceId format', [
-                    'endpoint' => 'portal.start',
-                    'serviceId' => $serviceIdParam,
-                    'ip' => request()->ip(),
-                    'ua' => substr((string) request()->userAgent(), 0, 255),
-                ]);
-                throw new HttpResponseException(response('Invalid serviceId', 400));
-            }
-            $service = Service::find((int) $serviceIdParam);
-            if (! $service) {
-                Log::warning('Service not found for serviceId', [
-                    'endpoint' => 'portal.start',
-                    'serviceId' => (int) $serviceIdParam,
-                    'ip' => request()->ip(),
-                    'ua' => substr((string) request()->userAgent(), 0, 255),
-                ]);
-                throw new HttpResponseException(response('Invalid serviceId', 400));
-            }
-            $reg = PendingRegistration::create([
-                'service_id' => $service->id,
-                'service_slug' => $service->slug,
-                'full_name' => '',
-                'email' => '',
-                'phone' => '',
-                'status' => 'draft',
-                'step' => 2,
-                'resume_token' => (string) Str::uuid(),
-                'data' => [],
-            ]);
-            request()->session()->put('portal_reg_id', $reg->id);
 
-            return redirect()->route('portal.info');
+        if ($serviceIdParam === null) {
+            // No serviceId provided - redirect to landing page to select service
+            return redirect()->route('landing.page.index')->with('info', 'Please select a service to continue.');
         }
-        $services = Service::orderBy('name')->get();
 
-        return view('portal.select-service', compact('services'));
-    }
-
-    public function storeService(Request $request)
-    {
-        $serviceIdParam = $request->input('serviceId', $request->input('service_id'));
-        if (! $serviceIdParam || ! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
-            Log::warning('Invalid or missing serviceId in storeService', [
-                'endpoint' => 'portal.service.store',
+        // Validate serviceId format
+        if (! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
+            Log::warning('Invalid serviceId format', [
+                'endpoint' => 'portal.start',
                 'serviceId' => $serviceIdParam,
-                'ip' => $request->ip(),
-                'ua' => substr((string) $request->userAgent(), 0, 255),
+                'ip' => request()->ip(),
+                'ua' => substr((string) request()->userAgent(), 0, 255),
             ]);
-            throw new HttpResponseException(response('Invalid serviceId', 400));
+            return redirect()->route('landing.page.index')->withErrors(['serviceId' => 'Invalid service ID. Please select a service from the homepage.']);
         }
+
+        // Find service
         $service = Service::find((int) $serviceIdParam);
         if (! $service) {
-            Log::warning('Service not found in storeService', [
-                'endpoint' => 'portal.service.store',
+            Log::warning('Service not found for serviceId', [
+                'endpoint' => 'portal.start',
                 'serviceId' => (int) $serviceIdParam,
-                'ip' => $request->ip(),
-                'ua' => substr((string) $request->userAgent(), 0, 255),
+                'ip' => request()->ip(),
+                'ua' => substr((string) request()->userAgent(), 0, 255),
             ]);
-            throw new HttpResponseException(response('Invalid serviceId', 400));
+            return redirect()->route('landing.page.index')->withErrors(['serviceId' => 'Service not found. Please select a service from the homepage.']);
         }
+
+        // Create pending registration and go directly to info step
         $reg = PendingRegistration::create([
             'service_id' => $service->id,
             'service_slug' => $service->slug,
@@ -95,16 +64,31 @@ class SelfServiceController extends Controller
             'resume_token' => (string) Str::uuid(),
             'data' => [],
         ]);
-        $request->session()->put('portal_reg_id', $reg->id);
+        request()->session()->put('portal_reg_id', $reg->id);
 
         return redirect()->route('portal.info');
+    }
+
+    public function storeService(Request $request)
+    {
+        // Legacy route - redirect to start with serviceId in query
+        $serviceIdParam = $request->input('serviceId', $request->input('service_id'));
+
+        if (! $serviceIdParam || ! is_numeric($serviceIdParam) || (int) $serviceIdParam < 1) {
+            return redirect()->route('landing.page.index')->withErrors(['serviceId' => 'Invalid service ID. Please select a service from the homepage.']);
+        }
+
+        // Redirect to start with serviceId in query string (which will create reg and go to info)
+        return redirect()->route('portal.start', ['serviceId' => $serviceIdParam]);
     }
 
     public function info(Request $request)
     {
         $reg = $this->current($request);
 
-        return view('portal.info', compact('reg'));
+        $service = $reg->service_id ? Service::find($reg->service_id) : null;
+
+        return view('portal.info', ['reg' => $reg, 'service' => $service]);
     }
 
     public function storeInfo(Request $request)
@@ -115,11 +99,17 @@ class SelfServiceController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'national_id' => ['nullable', 'string', 'max:255'],
-        ], [
-            //
         ]);
         $data = $reg->data ?: [];
         $data['national_id'] = $validated['national_id'] ?? null;
+        if ($reg->service_slug === 'project-registration' || $reg->service_slug === 'construction-permit-application') {
+            $details = $request->validate([
+                'project_name' => ['required', 'string', 'max:255'],
+                'location_text' => ['required', 'string', 'max:255'],
+            ]);
+            $data['project_name'] = $details['project_name'];
+            $data['location_text'] = $details['location_text'];
+        }
         $reg->update([
             'full_name' => $validated['full_name'],
             'email' => $validated['email'],
@@ -127,8 +117,24 @@ class SelfServiceController extends Controller
             'data' => $data,
             'step' => 5,
         ]);
-
-        return redirect()->route('portal.pay');
+        $request->validate([
+            'documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:5120'],
+        ]);
+        if ($request->hasFile('documents')) {
+            foreach ($request->file('documents') as $file) {
+                $path = $file->store('self_docs', 'public');
+                PendingRegistrationDocument::create([
+                    'pending_registration_id' => $reg->id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $file->getClientOriginalExtension(),
+                ]);
+            }
+        }
+        if ($request->filled('payment_method')) {
+            return $this->processPay($request);
+        }
+        return redirect()->route('portal.info');
     }
 
     public function details(Request $request)

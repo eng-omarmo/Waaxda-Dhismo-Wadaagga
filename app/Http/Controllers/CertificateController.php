@@ -23,6 +23,7 @@ class CertificateController extends Controller
 {
     public function index(Request $request)
     {
+
         $certs = Certificate::with(['receiver', 'service'])->latest()->paginate(10)->withQueryString();
 
         return view('admin.certificates.index', compact('certs'));
@@ -93,7 +94,7 @@ class CertificateController extends Controller
         ]));
 
         $certificate = Certificate::create([
-            'receiver_type' => 'test',
+            'receiver_type' => \App\Models\Project::class,
             'receiver_id' => $project->id,
             'service_id' => $service->id,
             'certificate_number' => $number,
@@ -233,7 +234,7 @@ class CertificateController extends Controller
         ]));
 
         $certificate = Certificate::create([
-            'receiver_type' => $service->name,
+            'receiver_type' => \App\Models\Project::class,
             'receiver_id' => $anchorProject->id,
             'service_id' => $service->id,
             'certificate_number' => $number,

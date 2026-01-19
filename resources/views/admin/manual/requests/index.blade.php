@@ -47,7 +47,7 @@
                 @endforelse
             </tbody>
         </table>
-        {{ $requests->links() }}
+        <x-pagination :paginator="$requests" />
     </div>
 </div>
 @endsection

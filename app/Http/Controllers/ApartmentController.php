@@ -16,7 +16,8 @@ class ApartmentController extends Controller
             $query->where('name', 'like', '%'.$request->search.'%');
         }
 
-        $apartments = $query->paginate(10);
+        $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
+        $apartments = $query->paginate($perPage)->withQueryString();
 
         return view('admin.apartments.index', compact('apartments'));
     }

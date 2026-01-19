@@ -30,7 +30,7 @@ class ApartmentConstructionPermitController extends Controller
             }
         }
 
-        return view('services.construction-permit', [
+        return view('services.construction-permit-enhanced', [
             'service' => $service,
             'payment' => $payment,
         ]);
@@ -161,7 +161,8 @@ class ApartmentConstructionPermitController extends Controller
                 ->orWhere('land_plot_number', 'like', '%'.$request->search.'%');
         }
 
-        $permits = $query->paginate(10);
+
+        $permits = $query->paginate(10)->withQueryString();
 
         return view('admin.permits.index', compact('permits'));
     }
@@ -228,6 +229,7 @@ class ApartmentConstructionPermitController extends Controller
             'permit_issue_date' => 'nullable|date',
             'permit_expiry_date' => 'nullable|date|after_or_equal:permit_issue_date',
             'permit_status' => 'required|in:Pending,Approved,Rejected',
+            'approval_notes' => 'nullable|string|max:2000',
         ]);
 
         if ($validator->fails()) {
@@ -266,5 +268,58 @@ class ApartmentConstructionPermitController extends Controller
         }
 
         return redirect()->back()->with('error', 'No drawing file available.');
+    }
+
+    public function approve(Request $request, ApartmentConstructionPermit $permit)
+    {
+        $validated = $request->validate([
+            'approval_notes' => ['nullable', 'string', 'max:2000'],
+            'digital_signature_svg' => ['required', 'string'],
+        ]);
+
+        // Land Ownership Verification Check
+        $plotNumber = $permit->land_plot_number;
+        $landParcel = \App\Models\LandParcel::where('plot_number', $plotNumber)->first();
+
+        if (!$landParcel) {
+            return back()->withErrors([
+                'land_verification' => 'Land parcel with plot number "'.$plotNumber.'" not found. Please register the land parcel first.'
+            ])->withInput();
+        }
+
+        if ($landParcel->verification_status !== 'Verified') {
+            return back()->withErrors([
+                'land_verification' => 'Land ownership must be verified before permit approval. Current status: '.$landParcel->verification_status.'. <a href="'.route('admin.land-parcels.show', $landParcel).'">Verify land parcel</a>'
+            ])->withInput();
+        }
+
+        // Check applicant matches verified owner
+        if ($landParcel->current_owner_national_id !== $permit->national_id_or_company_registration) {
+            return back()->withErrors([
+                'ownership_mismatch' => 'Applicant national ID ('.$permit->national_id_or_company_registration.') does not match verified land owner ('.$landParcel->current_owner_national_id.').'
+            ])->withInput();
+        }
+
+        $permit->permit_status = 'Approved';
+        $permit->approval_notes = $validated['approval_notes'] ?? null;
+        $permit->approval_signature_svg = $validated['digital_signature_svg'];
+        $permit->approved_by_admin_id = auth()->id();
+        $permit->approved_at = now();
+        $permit->save();
+
+        return back()->with('success', 'Permit approved');
+    }
+
+    public function reject(Request $request, ApartmentConstructionPermit $permit)
+    {
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:2000'],
+        ]);
+        $permit->permit_status = 'Rejected';
+        $permit->approval_notes = $validated['rejection_reason'];
+        $permit->approved_by_admin_id = auth()->id();
+        $permit->approved_at = now();
+        $permit->save();
+        return back()->with('success', 'Permit rejected');
     }
 }

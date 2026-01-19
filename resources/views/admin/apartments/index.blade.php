@@ -59,7 +59,7 @@
                         </tbody>
                     </table>
                 </div>
-                {{ $apartments->links() }}
+                <x-pagination :paginator="$apartments" />
             </div>
         </div>
     </div>
