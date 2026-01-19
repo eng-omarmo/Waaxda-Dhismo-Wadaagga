@@ -151,6 +151,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/transfers/{transfer}/approve', [\App\Http\Controllers\ApartmentTransferController::class, 'approve'])->name('apartment-transfers.approve');
     Route::post('/transfers/{transfer}/reject', [\App\Http\Controllers\ApartmentTransferController::class, 'reject'])->name('apartment-transfers.reject');
     Route::get('/transfers/{transfer}/deed', [\App\Http\Controllers\ApartmentTransferController::class, 'deed'])->name('apartment-transfers.deed');
+    Route::get('/transfers/owner/{apartment}', [\App\Http\Controllers\ApartmentTransferController::class, 'ownerProfile'])->name('apartment-transfers.owner');
+    Route::get('/transfers/owners/lookup', [\App\Http\Controllers\ApartmentTransferController::class, 'ownersLookup'])->name('apartment-transfers.owners.lookup');
 
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');
     Route::view('/audit', 'admin.pages.audit')->name('audit');

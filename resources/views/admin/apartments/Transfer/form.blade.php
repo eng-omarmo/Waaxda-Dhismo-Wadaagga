@@ -12,15 +12,14 @@
 <div class="row">
     <div class="col-md-6">
         <div class="mb-3">
-            <label for="transfer_reference_number" class="form-label">
-                Transfer Reference Number
+            <label class="form-label">
+                Reference Number (auto-generated)
             </label>
             <input type="text"
                    class="form-control"
-                   id="transfer_reference_number"
-                   name="transfer_reference_number"
-                   value="{{ old('transfer_reference_number', $transfer->transfer_reference_number ?? '') }}"
-                   required>
+                   id="transfer_reference_number_preview"
+                   value="Will be generated on save"
+                   disabled>
         </div>
     </div>
 
@@ -44,29 +43,28 @@
 <div class="row">
     <div class="col-md-6">
         <div class="mb-3">
-            <label for="apartment_number" class="form-label">
-                Apartment Number
+            <label for="apartment_id" class="form-label">
+                Apartment
             </label>
-            <input type="text"
-                   class="form-control"
-                   id="apartment_number"
-                   name="apartment_number"
-                   value="{{ old('apartment_number', $transfer->apartment_number ?? '') }}"
-                   required>
+            <select class="form-select" id="apartment_id" name="apartment_id" required aria-required="true">
+                <option value="">Select apartment</option>
+                @foreach(($apartments ?? []) as $apt)
+                    <option value="{{ $apt->id }}" @selected(old('apartment_id', $transfer->apartment_number ?? '') == $apt->id)>{{ $apt->name }} — {{ $apt->address_city }}</option>
+                @endforeach
+            </select>
         </div>
     </div>
 
     <div class="col-md-6">
         <div class="mb-3">
             <label for="unit_number" class="form-label">
-                Unit Number
+                Unit Number (optional)
             </label>
             <input type="text"
                    class="form-control"
                    id="unit_number"
                    name="unit_number"
-                   value="{{ old('unit_number', $transfer->unit_number ?? '') }}"
-                   required>
+                   value="{{ old('unit_number', $transfer->unit_number ?? '') }}">
         </div>
     </div>
 </div>

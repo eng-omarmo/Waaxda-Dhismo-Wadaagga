@@ -8,6 +8,7 @@ use App\Models\OwnerProfile;
 use App\Models\OwnershipHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class ApartmentTransferController extends Controller
 {
@@ -40,15 +41,16 @@ class ApartmentTransferController extends Controller
 
     public function create()
     {
-        return view('admin.apartments.Transfer.create');
+        $apartments = Apartment::orderBy('name')->get(['id', 'name', 'address_city']);
+        return view('admin.apartments.Transfer.create', compact('apartments'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'transfer_reference_number' => 'required|string|max:64',
             'transfer_date' => 'required|date',
-            'apartment_number' => 'required|string|max:255',
+            'apartment_id' => 'required|string|exists:apartments,id',
+            'apartment_number' => 'nullable|string|max:255',
             'unit_number' => 'nullable|string|max:255',
             'previous_owner_name' => 'required|string|max:255',
             'previous_owner_id' => 'required|string|max:64',
@@ -58,23 +60,31 @@ class ApartmentTransferController extends Controller
             'supporting_documents' => 'nullable|file',
         ]);
 
-        $dup = ApartmentTransfer::where('apartment_number', $request->apartment_number)
+        $apartment = Apartment::find($request->apartment_id);
+        if (! $apartment && $request->filled('apartment_number')) {
+            $apartment = Apartment::query()
+                ->where('id', $request->apartment_number)
+                ->orWhere('name', $request->apartment_number)
+                ->first();
+        }
+        if (! $apartment) {
+            return back()->withErrors(['apartment_id' => 'Apartment not found'])->withInput();
+        }
+
+        $dup = ApartmentTransfer::where('apartment_number', $apartment->id)
             ->where('previous_owner_id', $request->previous_owner_id)
             ->where('new_owner_id', $request->new_owner_id)
             ->whereDate('transfer_date', $request->transfer_date)
             ->where('approval_status', 'Pending')
             ->first();
         if ($dup) {
-            return back()->withErrors(['transfer_reference_number' => 'Duplicate pending transfer request detected'])->withInput();
+            return back()->withErrors(['transfer_date' => 'Duplicate pending transfer request detected'])->withInput();
         }
 
-        $apartment = Apartment::query()
-            ->where('id', $request->apartment_number)
-            ->orWhere('name', $request->apartment_number)
-            ->first();
-        if (! $apartment) {
-            return back()->withErrors(['apartment_number' => 'Apartment not found'])->withInput();
-        }
+        $ref = null;
+        do {
+            $ref = 'IPAMS-TRF-'.date('Y').'-'.substr($apartment->id, 0, 8).'-'.substr((string) Str::uuid(), 0, 8);
+        } while (ApartmentTransfer::where('transfer_reference_number', $ref)->exists());
 
         $previousOwner = OwnerProfile::where('national_id', $request->previous_owner_id)->first();
         if (! $previousOwner) {
@@ -103,7 +113,7 @@ class ApartmentTransferController extends Controller
         }
 
         $transfer = ApartmentTransfer::create([
-            'transfer_reference_number' => $request->transfer_reference_number,
+            'transfer_reference_number' => $ref,
             'apartment_number' => $apartment->id,
             'unit_number' => $request->unit_number,
             'previous_owner_name' => $previousOwner->full_name,
@@ -201,7 +211,142 @@ class ApartmentTransferController extends Controller
     public function deed(ApartmentTransfer $transfer)
     {
         $apartment = \App\Models\Apartment::find($transfer->apartment_number);
-        $html = '<div style="font-family:Arial,sans-serif;padding:24px"><h2 style="margin:0">Property Transfer Deed</h2><div style="margin-top:8px">Reference: '.e($transfer->transfer_reference_number).'</div><hr><div>Apartment: '.e($apartment?->name ?? $transfer->apartment_number).' • Unit: '.e($transfer->unit_number).'</div><div>From: '.e($transfer->previous_owner_name).' ('.e($transfer->previous_owner_id).')</div><div>To: '.e($transfer->new_owner_name).' ('.e($transfer->new_owner_id).')</div><div>Reason: '.e($transfer->transfer_reason).'</div><div>Date: '.e($transfer->transfer_date?->toDateString()).'</div><hr><div>Approved: '.e($transfer->approved_at?->toDateTimeString() ?: 'Pending').'</div></div>';
+        $propCity = $apartment?->address_city ?: '';
+        $propName = $apartment?->name ?: (string) $transfer->apartment_number;
+        $unit = (string) ($transfer->unit_number ?: '');
+        $dateStr = $transfer->transfer_date?->toDateString() ?: '';
+        $approvedStr = $transfer->approved_at?->toDateTimeString() ?: 'Pending';
+        $signatureImg = '';
+        if ($transfer->digital_signature_svg && str_starts_with($transfer->digital_signature_svg, 'data:')) {
+            $signatureImg = '<img src="'.e($transfer->digital_signature_svg).'" alt="Digital Signature" style="max-width:180px;max-height:80px">';
+        }
+        $legalDescription = 'Apartment: '.e($propName).($unit ? ' • Unit: '.e($unit) : '').($propCity ? ' • City: '.e($propCity) : '');
+        $html = '
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page { size: A4; margin: 20mm; }
+body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #222; }
+.wrap { position: relative; }
+.title { font-size: 20pt; font-weight: 700; text-align: center; margin-bottom: 6mm; }
+.meta { text-align: center; font-size: 11pt; color: #555; margin-bottom: 6mm; }
+.section { margin-bottom: 6mm; }
+.section h3 { font-size: 14pt; margin: 0 0 2mm 0; padding: 0; }
+.box { border: 1px solid #999; padding: 4mm; border-radius: 2px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.small { font-size: 10pt; color: #555; }
+.footer { position: fixed; bottom: 10mm; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; }
+.pagenum:before { content: counter(page); }
+.pagetotal:before { content: counter(pages); }
+.watermark { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 60pt; color: rgba(0,0,0,0.08); z-index: 0; }
+.content { position: relative; z-index: 1; }
+.signature-line { border-top: 1px solid #000; width: 60mm; margin-top: 8mm; }
+.signature-block { display: flex; gap: 10mm; align-items: flex-end; }
+.notary { border: 1px dashed #999; padding: 4mm; }
+.crop { position: fixed; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+.crop .tl, .crop .tr, .crop .bl, .crop .br { position: absolute; width: 20mm; height: 20mm; }
+.crop .tl { top: 0; left: 0; border-left: 0.5pt solid #999; border-top: 0.5pt solid #999; }
+.crop .tr { top: 0; right: 0; border-right: 0.5pt solid #999; border-top: 0.5pt solid #999; }
+.crop .bl { bottom: 0; left: 0; border-left: 0.5pt solid #999; border-bottom: 0.5pt solid #999; }
+.crop .br { bottom: 0; right: 0; border-right: 0.5pt solid #999; border-bottom: 0.5pt solid #999; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="watermark">IPAMS</div>
+  <div class="content">
+    <div class="title">Property Transfer Deed</div>
+    <div class="meta">Reference: '.e($transfer->transfer_reference_number).' • Date: '.e($dateStr).'</div>
+
+    <div class="section box">
+      <h3>Parties</h3>
+      <div class="grid">
+        <div>
+          <div><strong>Grantor (Previous Owner)</strong></div>
+          <div>Full Legal Name: '.e($transfer->previous_owner_name).'</div>
+          <div>National ID: '.e($transfer->previous_owner_id).'</div>
+          <div>Address: '.e('').' </div>
+        </div>
+        <div>
+          <div><strong>Grantee (New Owner)</strong></div>
+          <div>Full Legal Name: '.e($transfer->new_owner_name).'</div>
+          <div>National ID: '.e($transfer->new_owner_id).'</div>
+          <div>Address: '.e('').' </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section box">
+      <h3>Property Description</h3>
+      <div>'.($legalDescription).'</div>
+      <div class="small">Complete legal description to be appended if required by jurisdiction.</div>
+    </div>
+
+    <div class="section box">
+      <h3>Consideration</h3>
+      <div>For good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Grantor agrees to convey the Property to the Grantee.</div>
+    </div>
+
+    <div class="section box">
+      <h3>Granting Clause</h3>
+      <div>The Grantor hereby conveys, grants, bargains, sells, and transfers to the Grantee all right, title, and interest in and to the Property, together with all improvements and appurtenances thereto, subject to recorded easements, covenants, and restrictions of record.</div>
+    </div>
+
+    <div class="section box">
+      <h3>Habendum Clause</h3>
+      <div>To have and to hold the Property unto the Grantee, the Grantee\'s heirs, successors, and assigns forever, free and clear of all liens and encumbrances except as expressly stated herein.</div>
+    </div>
+
+    <div class="section box">
+      <h3>Jurisdictional Clause</h3>
+      <div>This conveyance complies with applicable municipal and national laws. Any state or locality-specific clauses required by law shall be attached hereto and made part of this Deed.</div>
+    </div>
+
+    <div class="section box">
+      <h3>Execution</h3>
+      <div class="signature-block">
+        <div>
+          <div class="signature-line"></div>
+          <div>Grantor Signature</div>
+          <div>Name: '.e($transfer->previous_owner_name).'</div>
+        </div>
+        <div>
+          <div class="signature-line"></div>
+          <div>Grantee Signature</div>
+          <div>Name: '.e($transfer->new_owner_name).'</div>
+        </div>
+        <div>
+          '.($signatureImg ?: '<div class="signature-line" style="width:40mm"></div>').'
+          <div>Authorized Officer</div>
+          <div class="small">Approval: '.e($approvedStr).'</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section notary">
+      <h3>Notary Acknowledgment</h3>
+      <div>State/Province: ____________________</div>
+      <div>County/District: ____________________</div>
+      <div>On this ____ day of __________, 20____, before me, the undersigned Notary Public, personally appeared ____________________, known to me or satisfactorily proven to be the person(s) whose name(s) is/are subscribed to the foregoing instrument, and acknowledged that he/she/they executed the same for the purposes therein contained.</div>
+      <div>Notary Public Signature: ____________________</div>
+      <div>Commission Expires: ____________________</div>
+      <div>Seal:</div>
+      <div style="border:1px solid #000; width:30mm; height:30mm;"></div>
+    </div>
+
+    <div class="section box">
+      <h3>Security Notice</h3>
+      <div>This document contains a security watermark and page numbering. Unauthorized reproduction may be subject to applicable laws.</div>
+    </div>
+
+  </div>
+  <div class="footer">Page <span class="pagenum"></span> of <span class="pagetotal"></span></div>
+  <div class="crop"><div class="tl"></div><div class="tr"></div><div class="bl"></div><div class="br"></div></div>
+</div>
+</body>
+</html>
+';
         \Barryvdh\DomPDF\Facade\Pdf::setOptions(['dpi' => 300]);
         $pdfData = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4')->output();
         $fileName = 'TransferDeed_'.$transfer->transfer_reference_number.'.pdf';
@@ -211,5 +356,54 @@ class ApartmentTransferController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    public function ownerProfile(Apartment $apartment)
+    {
+        $owner = null;
+        if ($apartment->owner_profile_id) {
+            $owner = OwnerProfile::find($apartment->owner_profile_id);
+        }
+        return response()->json([
+            'apartment' => [
+                'id' => $apartment->id,
+                'name' => $apartment->name,
+                'city' => $apartment->address_city,
+            ],
+            'owner_name' => $owner?->full_name,
+            'owner_id' => $owner?->national_id,
+        ]);
+    }
+
+    public function ownersLookup(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $nid = trim((string) $request->query('national_id', ''));
+        $query = OwnerProfile::query();
+        if ($nid !== '') {
+            $owner = $query->where('national_id', $nid)->first();
+            if ($owner) {
+                return response()->json([
+                    'data' => [[
+                        'id' => $owner->id,
+                        'full_name' => $owner->full_name,
+                        'national_id' => $owner->national_id,
+                    ]],
+                ]);
+            }
+            return response()->json(['data' => []]);
+        }
+        if ($q === '') {
+            return response()->json(['data' => []]);
+        }
+        $owners = $query
+            ->where(function ($sub) use ($q) {
+                $sub->where('full_name', 'like', '%'.$q.'%')
+                    ->orWhere('national_id', 'like', '%'.$q.'%');
+            })
+            ->orderBy('full_name')
+            ->limit(10)
+            ->get(['id', 'full_name', 'national_id']);
+        return response()->json(['data' => $owners]);
     }
 }
