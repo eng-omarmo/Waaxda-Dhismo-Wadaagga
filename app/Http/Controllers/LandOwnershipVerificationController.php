@@ -44,14 +44,14 @@ class LandOwnershipVerificationController extends Controller
     public function show(LandOwnershipVerification $verification)
     {
         $verification->load(['landParcel', 'requestedBy', 'verifiedBy']);
-        
+
         return view('admin.land-verifications.show', compact('verification'));
     }
 
     public function create()
     {
         $landParcels = LandParcel::orderBy('plot_number')->get();
-        
+
         return view('admin.land-verifications.create', compact('landParcels'));
     }
 

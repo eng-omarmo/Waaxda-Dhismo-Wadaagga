@@ -22,4 +22,3 @@ return new class extends Migration
         Schema::dropIfExists('ownership_claim_changes');
     }
 };
-

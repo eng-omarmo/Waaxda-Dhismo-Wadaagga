@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\OrganizationChange;
 use App\Models\OrganizationDocument;
+use App\Models\Service;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -75,6 +77,48 @@ class AdminOrganizationController extends Controller
             'name', 'registration_number', 'address', 'type',
             'contact_full_name', 'contact_role', 'contact_phone', 'contact_email', 'status',
         ]));
+
+        $service = Service::whereIn('slug', ['developer-registration', 'organization-registration'])->first();
+        if ($service) {
+            $schema = [
+                'title' => 'Organization Registration – Data Collection',
+                'instructions' => 'Complete all required fields.',
+                'fields' => [
+                    ['name' => 'organization_name', 'label' => 'Organization Name', 'type' => 'text', 'required' => true],
+                    ['name' => 'registration_number', 'label' => 'Registration Number', 'type' => 'text', 'required' => false],
+                    ['name' => 'contact_email', 'label' => 'Contact Email', 'type' => 'email', 'required' => true],
+                    ['name' => 'contact_phone', 'label' => 'Contact Phone', 'type' => 'text', 'required' => true],
+                ],
+            ];
+            $values = [
+                'organization_name' => $org->name,
+                'registration_number' => $org->registration_number,
+                'contact_email' => $org->contact_email,
+                'contact_phone' => $org->contact_phone,
+            ];
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => Auth::id(),
+                'user_full_name' => $org->contact_full_name,
+                'user_email' => $org->contact_email,
+                'user_phone' => $org->contact_phone,
+                'user_national_id' => null,
+                'request_details' => [
+                    'form_schema' => $schema,
+                    'form_values' => $values,
+                    'form_status' => 'closed',
+                    'form_audit' => [[
+                        'submitted_by' => Auth::id(),
+                        'submitted_at' => now()->toDateTimeString(),
+                        'changes' => [],
+                        'values' => $values,
+                    ]],
+                ],
+                'status' => 'verified',
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+        }
 
         return redirect()->route('admin.organizations.index')->with('status', 'Organization created');
     }

@@ -304,25 +304,37 @@
 
                     <div class="col-lg-7 bg-white p-5">
                         <h3 class="fw-bold text-dark mb-4">Codsi ama Weydiin</h3>
-                        <form action="#">
+                        @if (session('status'))
+                        <div class="alert alert-success" role="alert">{{ session('status') }}</div>
+                        @endif
+                        <form method="POST" action="{{ route('contact.store') }}">
+                            @csrf
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small text-uppercase">Magacaaga oo Buuxa</label>
-                                    <input type="text" class="form-control" placeholder="Tusaale: Mohamed Ali" required>
+                                    <input name="full_name" type="text" class="form-control" placeholder="Tusaale: Mohamed Ali" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small text-uppercase">Telefoonka</label>
-                                    <input type="tel" class="form-control" placeholder="061XXXXXXX" required>
+                                    <input name="phone" type="tel" class="form-control" placeholder="061XXXXXXX">
                                 </div>
-                                <div class="col-12">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-uppercase">Email</label>
+                                    <input name="email" type="email" class="form-control" placeholder="tusaale@example.com">
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label fw-bold small text-uppercase">Nooca Adeegga</label>
-                                    <select class="form-select">
+                                    <select name="service_type" class="form-select">
                                         <option selected disabled>Dooro adeegga aad rabto...</option>
                                         <option>Codsiga Fasaxa Dhismaha</option>
                                         <option>Warqadda Lahaanshaha</option>
                                         <option>Kala Wareejin Hanti</option>
                                         <option>Cabasho / Mid kale</option>
                                     </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold small text-uppercase">Fariin</label>
+                                    <textarea name="message" class="form-control" rows="4" placeholder="Ku qor fariintaada halkan"></textarea>
                                 </div>
                                 <div class="col-12 text-end">
                                     <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm mt-3">Dir Codsiga <i class="bi bi-arrow-right ms-2"></i></button>

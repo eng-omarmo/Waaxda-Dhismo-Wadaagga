@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
         Schema::table('certificates', function (Blueprint $table) {
             if (Schema::hasColumn('certificates', 'project_id')) {
                 $table->dropColumn('project_id');
@@ -17,6 +20,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
         Schema::table('certificates', function (Blueprint $table) {
             if (! Schema::hasColumn('certificates', 'project_id')) {
                 $table->string('project_id')->nullable()->index();

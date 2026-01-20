@@ -1,9 +1,8 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -17,7 +16,7 @@ return new class extends Migration
             } catch (\Exception $e) {
                 // Ignore if constraint doesn't exist
             }
-            
+
             // Try to drop any auto-generated constraint names
             try {
                 // Get all foreign keys on this table
@@ -29,7 +28,7 @@ return new class extends Migration
                     AND COLUMN_NAME = 'land_parcel_id'
                     AND REFERENCED_TABLE_NAME IS NOT NULL
                 ");
-                
+
                 foreach ($foreignKeys as $fk) {
                     try {
                         DB::statement("ALTER TABLE `land_ownership_histories` DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
@@ -40,7 +39,7 @@ return new class extends Migration
             } catch (\Exception $e) {
                 // Ignore errors
             }
-            
+
             // Add the properly named foreign key if column exists and doesn't have constraint
             if (Schema::hasColumn('land_ownership_histories', 'land_parcel_id')) {
                 try {

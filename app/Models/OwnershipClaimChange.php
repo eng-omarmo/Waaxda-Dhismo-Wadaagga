@@ -22,4 +22,3 @@ class OwnershipClaimChange extends Model
         return $this->belongsTo(OwnershipClaim::class, 'claim_id', 'id');
     }
 }
-

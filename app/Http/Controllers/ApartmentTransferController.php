@@ -42,6 +42,7 @@ class ApartmentTransferController extends Controller
     public function create()
     {
         $apartments = Apartment::orderBy('name')->get(['id', 'name', 'address_city']);
+
         return view('admin.apartments.Transfer.create', compact('apartments'));
     }
 
@@ -364,6 +365,7 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
         if ($apartment->owner_profile_id) {
             $owner = OwnerProfile::find($apartment->owner_profile_id);
         }
+
         return response()->json([
             'apartment' => [
                 'id' => $apartment->id,
@@ -391,6 +393,7 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
                     ]],
                 ]);
             }
+
             return response()->json(['data' => []]);
         }
         if ($q === '') {
@@ -404,6 +407,7 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
             ->orderBy('full_name')
             ->limit(10)
             ->get(['id', 'full_name', 'national_id']);
+
         return response()->json(['data' => $owners]);
     }
 }

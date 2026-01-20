@@ -59,6 +59,21 @@
                                 <td>{{ $service?->name ?? 'Service' }}</td>
                             </tr>
                         </table>
+                        @php
+                            $sig = hash_hmac('sha256', (string) $certificate->certificate_uid, config('app.key'));
+                            $verifyUrl = route('certificates.verify', ['uid' => $certificate->certificate_uid, 'sig' => $sig]);
+                            $payload = json_encode([
+                                'uid' => $certificate->certificate_uid,
+                                'url' => $verifyUrl,
+                                'issuer' => $service?->name ?? 'BRA',
+                                'issued_at' => $certificate->issued_at->toDateString(),
+                            ], JSON_UNESCAPED_SLASHES);
+                        @endphp
+                        <div class="mt-3">
+                            <h6>QR Verification</h6>
+                            <div id="qrCode" style="width:300px;height:300px;"></div>
+                            <div class="small text-muted mt-2">Scan to verify</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -81,6 +96,15 @@
         };
         attach(btn);
         attach(sampleBtn);
+        var el = document.getElementById('qrCode');
+        if (el) {
+            var s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+            s.onload = function() {
+                new QRCode(el, { text: {!! json_encode($payload) !!}, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M });
+            };
+            document.body.appendChild(s);
+        }
     });
 </script>
 @endpush

@@ -1,28 +1,27 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Str;
-use Faker\Factory as Faker;
-use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Service;
-use App\Models\Organization;
-use App\Models\Project;
+use App\Models\Apartment;
+use App\Models\ApartmentConstructionPermit;
+use App\Models\ApartmentTransfer;
 use App\Models\BusinessLicense;
 use App\Models\BusinessLicenseDocument;
-use App\Models\LandParcel;
-use App\Models\ApartmentConstructionPermit;
-use App\Models\OwnerProfile;
 use App\Models\IdentityDocument;
-use App\Models\Apartment;
-use App\Models\Unit;
-use App\Models\ServiceRequest;
-use App\Models\PaymentVerification;
-use App\Models\OwnershipHistory;
+use App\Models\LandParcel;
+use App\Models\Organization;
+use App\Models\OwnerProfile;
 use App\Models\OwnershipClaim;
-use App\Models\ApartmentTransfer;
+use App\Models\OwnershipHistory;
+use App\Models\PaymentVerification;
+use App\Models\Project;
+use App\Models\Service;
+use App\Models\ServiceRequest;
+use App\Models\Unit;
+use App\Models\User;
+use Faker\Factory as Faker;
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -36,41 +35,41 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
     $force = (bool) $this->option('force');
     $env = (string) $this->option('seed-env');
     $all = empty($modules);
-    $pick = function (array $choices) use ($faker) {
+    $pick = function (array $choices) {
         return $choices[array_rand($choices)];
     };
     $existsSeed = function () use ($tag) {
-        return Service::where('name', 'like', $tag . '%')->exists()
-            || Organization::where('name', 'like', $tag . '%')->exists()
-            || Project::where('registrant_name', 'like', $tag . '%')->exists()
-            || BusinessLicense::where('company_name', 'like', $tag . '%')->exists()
-            || LandParcel::where('verification_notes', 'like', $tag . '%')->exists()
-            || OwnerProfile::where('full_name', 'like', $tag . '%')->exists()
-            || Apartment::where('notes', 'like', $tag . '%')->exists()
-            || Unit::where('unit_number', 'like', $tag . '%')->exists()
-            || ServiceRequest::where('user_full_name', 'like', $tag . '%')->exists();
+        return Service::where('name', 'like', $tag.'%')->exists()
+            || Organization::where('name', 'like', $tag.'%')->exists()
+            || Project::where('registrant_name', 'like', $tag.'%')->exists()
+            || BusinessLicense::where('company_name', 'like', $tag.'%')->exists()
+            || LandParcel::where('verification_notes', 'like', $tag.'%')->exists()
+            || OwnerProfile::where('full_name', 'like', $tag.'%')->exists()
+            || Apartment::where('notes', 'like', $tag.'%')->exists()
+            || Unit::where('unit_number', 'like', $tag.'%')->exists()
+            || ServiceRequest::where('user_full_name', 'like', $tag.'%')->exists();
     };
     $cleanup = function () use ($tag) {
         $this->info('Cleaning seeded data');
         $this->output->progressStart(10);
-        Service::where('name', 'like', $tag . '%')->delete();
+        Service::where('name', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        BusinessLicenseDocument::whereIn('license_id', BusinessLicense::where('company_name', 'like', $tag . '%')->pluck('id'))->delete();
-        BusinessLicense::where('company_name', 'like', $tag . '%')->delete();
+        BusinessLicenseDocument::whereIn('license_id', BusinessLicense::where('company_name', 'like', $tag.'%')->pluck('id'))->delete();
+        BusinessLicense::where('company_name', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        Organization::where('name', 'like', $tag . '%')->delete();
+        Organization::where('name', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        Project::where('registrant_name', 'like', $tag . '%')->delete();
+        Project::where('registrant_name', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        ApartmentConstructionPermit::where('applicant_name', 'like', $tag . '%')->delete();
+        ApartmentConstructionPermit::where('applicant_name', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        LandParcel::where('verification_notes', 'like', $tag . '%')->delete();
+        LandParcel::where('verification_notes', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        IdentityDocument::whereIn('owner_profile_id', OwnerProfile::where('full_name', 'like', $tag . '%')->pluck('id'))->delete();
+        IdentityDocument::whereIn('owner_profile_id', OwnerProfile::where('full_name', 'like', $tag.'%')->pluck('id'))->delete();
         $this->output->progressAdvance();
-        Unit::where('unit_number', 'like', $tag . '%')->delete();
+        Unit::where('unit_number', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        Apartment::where('notes', 'like', $tag . '%')->delete();
+        Apartment::where('notes', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
         PaymentVerification::whereIn('service_request_id', ServiceRequest::where('user_full_name', 'like', $tag.'%')->pluck('id'))->delete();
         $this->output->progressAdvance();
@@ -80,11 +79,12 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         $this->output->progressAdvance();
         ApartmentTransfer::where('transfer_reference_number', 'like', $tag.'%')->delete();
         $this->output->progressAdvance();
-        ServiceRequest::where('user_full_name', 'like', $tag . '%')->delete();
+        ServiceRequest::where('user_full_name', 'like', $tag.'%')->delete();
         $this->output->progressFinish();
     };
     if ($action === 'cleanup') {
         $cleanup();
+
         return;
     }
     if ($action === 'reset') {
@@ -93,15 +93,17 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
     }
     if ($action !== 'seed') {
         $this->error('Invalid action');
+
         return;
     }
     if ($existsSeed() && ! $force) {
         $this->warn('Seed data already exists. Use --force or run cleanup/reset.');
+
         return;
     }
     $this->info('Seeding start');
-    $this->info('Environment: ' . $env);
-    $this->info('Entries per module: ' . $entries);
+    $this->info('Environment: '.$env);
+    $this->info('Entries per module: '.$entries);
     $seedServices = function () use ($tag) {
         $this->info('Seeding services');
         $mapped = [
@@ -114,8 +116,8 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         ];
         foreach ($mapped as $name => $slug) {
             Service::updateOrCreate(['slug' => $slug], [
-                'name' => $tag . ' ' . $name,
-                'description' => 'Seeded ' . $name,
+                'name' => $tag.' '.$name,
+                'description' => 'Seeded '.$name,
                 'price' => rand(100, 400),
                 'icon_color' => 'bg-primary',
                 'icon_class' => 'bi-gear',
@@ -128,13 +130,13 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         $this->output->progressStart($count);
         for ($i = 0; $i < $count; $i++) {
             Organization::create([
-                'name' => $tag . ' ' . $faker->company,
+                'name' => $tag.' '.$faker->company,
                 'registration_number' => strtoupper($faker->bothify('REG-#####')),
                 'address' => $faker->streetAddress,
                 'type' => $pick(['Developer', 'Contractor', 'Consultant', 'Other']),
                 'contact_full_name' => $faker->name,
                 'contact_role' => $pick(['Owner', 'Director', 'Manager']),
-                'contact_phone' => '061' . rand(1000000, 9999999),
+                'contact_phone' => '061'.rand(1000000, 9999999),
                 'contact_email' => $faker->safeEmail,
                 'status' => 'pending',
                 'admin_notes' => $tag,
@@ -153,8 +155,8 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
                 'location_text' => $faker->city,
                 'developer_id' => $orgIds ? $orgIds[array_rand($orgIds)] : null,
                 'status' => $i % 2 === 0 ? 'Draft' : 'Submitted',
-                'registrant_name' => $tag . ' ' . $faker->name,
-                'registrant_phone' => '061' . rand(1000000, 9999999),
+                'registrant_name' => $tag.' '.$faker->name,
+                'registrant_phone' => '061'.rand(1000000, 9999999),
                 'registrant_email' => $faker->safeEmail,
             ]);
             $this->output->progressAdvance();
@@ -169,13 +171,13 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         $this->output->progressStart($count);
         for ($i = 0; $i < $count; $i++) {
             LandParcel::create([
-                'plot_number' => 'SEED-PLT-' . strtoupper(Str::random(6)),
-                'title_number' => 'T-' . strtoupper(Str::random(5)),
+                'plot_number' => 'SEED-PLT-'.strtoupper(Str::random(6)),
+                'title_number' => 'T-'.strtoupper(Str::random(5)),
                 'location_district' => $pick($districts),
                 'location_region' => 'Banaadir',
                 'size_sqm' => rand(200, 1200),
                 'current_owner_name' => $faker->name,
-                'current_owner_national_id' => 'SOM-' . rand(100000, 999999),
+                'current_owner_national_id' => 'SOM-'.rand(100000, 999999),
                 'ownership_type' => $pick($types),
                 'verification_status' => $pick($statuses),
                 'verification_documents_path' => [],
@@ -191,16 +193,16 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         $plots = LandParcel::pluck('plot_number')->all();
         $this->output->progressStart($count);
         for ($i = 0; $i < $count; $i++) {
-            $plot = $plots ? $plots[array_rand($plots)] : 'SEED-PLT-' . strtoupper(Str::random(6));
+            $plot = $plots ? $plots[array_rand($plots)] : 'SEED-PLT-'.strtoupper(Str::random(6));
             ApartmentConstructionPermit::create([
-                'applicant_name' => $tag . ' ' . $faker->name,
-                'national_id_or_company_registration' => 'SOM-' . rand(100000, 999999),
+                'applicant_name' => $tag.' '.$faker->name,
+                'national_id_or_company_registration' => 'SOM-'.rand(100000, 999999),
                 'land_plot_number' => $plot,
                 'location' => $faker->city,
                 'number_of_floors' => rand(1, 10),
                 'number_of_units' => rand(1, 50),
                 'engineer_or_architect_name' => $faker->name,
-                'engineer_or_architect_license' => 'LIC-' . strtoupper(Str::random(8)),
+                'engineer_or_architect_license' => 'LIC-'.strtoupper(Str::random(8)),
                 'permit_status' => $pick(['Pending', 'Approved', 'Rejected']),
             ]);
             $this->output->progressAdvance();
@@ -212,10 +214,10 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         $this->output->progressStart($count);
         for ($i = 0; $i < $count; $i++) {
             $owner = OwnerProfile::create([
-                'full_name' => $tag . ' ' . $faker->name,
-                'national_id' => 'SOM-' . rand(100000, 999999),
-                'tax_id_number' => 'TIN-' . strtoupper(Str::random(8)),
-                'contact_phone' => '061' . rand(1000000, 9999999),
+                'full_name' => $tag.' '.$faker->name,
+                'national_id' => 'SOM-'.rand(100000, 999999),
+                'tax_id_number' => 'TIN-'.strtoupper(Str::random(8)),
+                'contact_phone' => '061'.rand(1000000, 9999999),
                 'contact_email' => $faker->safeEmail,
                 'address_text' => $faker->streetAddress,
             ]);
@@ -223,17 +225,17 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
                 IdentityDocument::create([
                     'owner_profile_id' => $owner->id,
                     'document_type' => 'NationalID',
-                    'document_number' => 'ID-' . strtoupper(Str::random(10)),
-                    'file_path' => 'seed/identity/' . $owner->id . '.pdf',
+                    'document_number' => 'ID-'.strtoupper(Str::random(10)),
+                    'file_path' => 'seed/identity/'.$owner->id.'.pdf',
                     'verified_at' => now()->subDays(rand(1, 100)),
                     'version' => 1,
                 ]);
             }
             $apt = Apartment::create([
-                'name' => $tag . ' ' . $faker->company . ' Apartments',
+                'name' => $tag.' '.$faker->company.' Apartments',
                 'address_city' => $faker->city,
                 'contact_name' => $faker->name,
-                'contact_phone' => '061' . rand(1000000, 9999999),
+                'contact_phone' => '061'.rand(1000000, 9999999),
                 'contact_email' => $faker->safeEmail,
                 'notes' => $tag,
                 'owner_profile_id' => $owner->id,
@@ -242,7 +244,7 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
             for ($u = 1; $u <= $unitsCount; $u++) {
                 Unit::create([
                     'apartment_id' => $apt->id,
-                    'unit_number' => $tag . '-U' . str_pad((string) $u, 3, '0', STR_PAD_LEFT),
+                    'unit_number' => $tag.'-U'.str_pad((string) $u, 3, '0', STR_PAD_LEFT),
                     'unit_type' => $pick(['Studio', '1BR', '2BR', '3BR']),
                     'square_footage' => rand(350, 1800),
                     'monthly_rent' => rand(100, 1200),
@@ -259,7 +261,7 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         $this->output->progressStart($count);
         for ($i = 0; $i < $count; $i++) {
             $lic = BusinessLicense::create([
-                'company_name' => $tag . ' ' . $faker->company,
+                'company_name' => $tag.' '.$faker->company,
                 'project_id' => $projects ? $projects[array_rand($projects)] : null,
                 'license_type' => $pick(['Rental', 'Commercial']),
                 'status' => 'pending',
@@ -267,13 +269,13 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
                 'expires_at' => now()->addYear(),
                 'registrant_name' => $faker->name,
                 'registrant_email' => $faker->safeEmail,
-                'registrant_phone' => '061' . rand(1000000, 9999999),
+                'registrant_phone' => '061'.rand(1000000, 9999999),
                 'admin_comments' => $tag,
             ]);
             BusinessLicenseDocument::create([
                 'license_id' => $lic->id,
                 'file_name' => 'seed_doc.pdf',
-                'file_path' => 'seed/license_docs/' . $lic->id . '.pdf',
+                'file_path' => 'seed/license_docs/'.$lic->id.'.pdf',
                 'file_type' => 'pdf',
                 'document_label' => 'Seed',
                 'created_at' => now(),
@@ -291,10 +293,10 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
             ServiceRequest::create([
                 'service_id' => $serviceIds ? $serviceIds[array_rand($serviceIds)] : null,
                 'user_id' => null,
-                'user_full_name' => $tag . ' ' . $faker->name,
+                'user_full_name' => $tag.' '.$faker->name,
                 'user_email' => $faker->safeEmail,
-                'user_phone' => '061' . rand(1000000, 9999999),
-                'user_national_id' => 'SOM-' . rand(100000, 999999),
+                'user_phone' => '061'.rand(1000000, 9999999),
+                'user_national_id' => 'SOM-'.rand(100000, 999999),
                 'request_details' => ['source' => 'seed', 'env' => $env],
                 'status' => 'pending',
             ]);
@@ -315,7 +317,7 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
                 'reference_number' => strtoupper($faker->bothify('PAY-########')),
                 'verified_by' => $admins ? $admins[array_rand($admins)] : null,
                 'verified_at' => now()->subDays(rand(1, 30)),
-                'status' => $faker->randomElement(['pending','verified','rejected']),
+                'status' => $faker->randomElement(['pending', 'verified', 'rejected']),
                 'notes' => 'seed',
                 'reconciled_amount' => rand(50, 500),
                 'reconciliation_notes' => 'seed',
@@ -339,7 +341,7 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
                     'claimant_phone' => '061'.rand(1000000, 9999999),
                     'claimant_email' => $faker->safeEmail,
                     'evidence_documents' => ['seed' => true],
-                    'status' => $faker->randomElement(['pending','approved','rejected']),
+                    'status' => $faker->randomElement(['pending', 'approved', 'rejected']),
                     'reviewer_comments' => 'seed',
                 ]);
             }
@@ -373,13 +375,13 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
                 'new_owner_id' => 'SOM-'.rand(100000, 999999),
                 'transfer_reason' => 'seed',
                 'transfer_date' => now()->subDays(rand(10, 120))->toDateString(),
-                'approval_status' => $faker->randomElement(['Pending','Approved','Rejected']),
+                'approval_status' => $faker->randomElement(['Pending', 'Approved', 'Rejected']),
             ]);
             $this->output->progressAdvance();
         }
         $this->output->progressFinish();
     };
-    $seedUsers = function () use ($faker) {
+    $seedUsers = function () {
         $this->info('Seeding users');
         if (! User::where('email', 'admin@example.com')->exists()) {
             User::create([
@@ -408,14 +410,14 @@ Artisan::command('system:seed {action : seed|cleanup|reset} {--modules=*} {--ent
         if ($all || in_array($name, $modules)) {
             $fn();
         } else {
-            $this->line('Skipping ' . $name);
+            $this->line('Skipping '.$name);
         }
     };
     $runCount = function (string $name, callable $fn) use ($modules, $all, $entries) {
         if ($all || in_array($name, $modules)) {
             $fn($entries);
         } else {
-            $this->line('Skipping ' . $name);
+            $this->line('Skipping '.$name);
         }
     };
     $run('users', $seedUsers);

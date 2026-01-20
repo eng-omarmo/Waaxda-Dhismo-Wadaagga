@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Certificate;
 use App\Models\Apartment;
+use App\Models\Certificate;
 use App\Models\OwnershipClaim;
 use App\Models\OwnershipClaimChange;
 use App\Models\Service;
@@ -34,6 +34,7 @@ class AdminOwnershipController extends Controller
             $claim = OwnershipClaim::find($request->claim);
         }
         $apartments = Apartment::orderBy('name')->get(['id', 'name', 'address_city']);
+
         return view('admin.pages.ownership', compact('claims', 'claim', 'apartments'));
     }
 
@@ -63,6 +64,7 @@ class AdminOwnershipController extends Controller
             'last_modified_by_admin_id' => Auth::id(),
             'evidence_documents' => $docs,
         ]));
+
         return redirect()->route('admin.ownership.index', ['claim' => $claim->id])->with('success', 'Claim created');
     }
 
@@ -107,6 +109,7 @@ class AdminOwnershipController extends Controller
                 'changes' => $changes,
             ]);
         }
+
         return back()->with('success', 'Claim updated');
     }
 
@@ -119,7 +122,7 @@ class AdminOwnershipController extends Controller
         $docs = (array) $claim->evidence_documents;
         if (empty($docs)) {
             return back()->withErrors([
-                'support_document' => 'Supporting document required to verify claim profile.'
+                'support_document' => 'Supporting document required to verify claim profile.',
             ])->withInput();
         }
         $claim->status = 'Verified';
@@ -150,6 +153,7 @@ class AdminOwnershipController extends Controller
                 ],
             ]);
         }
+
         return back()->with('success', 'Claim verified');
     }
 
@@ -164,6 +168,7 @@ class AdminOwnershipController extends Controller
         $claim->reviewed_at = now();
         $claim->last_modified_by_admin_id = Auth::id();
         $claim->save();
+
         return back()->with('success', 'Claim rejected');
     }
 
@@ -179,6 +184,7 @@ class AdminOwnershipController extends Controller
         if (! $path || ! Storage::disk('public')->exists($path)) {
             abort(404);
         }
+
         return Storage::disk('public')->response($path, $name);
     }
 }

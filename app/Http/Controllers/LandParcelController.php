@@ -43,7 +43,7 @@ class LandParcelController extends Controller
     public function show(LandParcel $landParcel)
     {
         $landParcel->load(['verifier', 'verifications.verifiedBy', 'ownershipHistories.recordedBy', 'permits']);
-        
+
         return view('admin.land-parcels.show', compact('landParcel'));
     }
 
@@ -91,7 +91,7 @@ class LandParcelController extends Controller
             'current_owner_national_id' => $validated['current_owner_national_id'],
             'ownership_type' => $validated['ownership_type'],
             'verification_status' => $validated['verification_status'],
-            'verification_documents_path' => !empty($documents) ? $documents : null,
+            'verification_documents_path' => ! empty($documents) ? $documents : null,
             'verification_notes' => $validated['verification_notes'] ?? null,
             'verified_by_admin_id' => $validated['verification_status'] === 'Verified' ? Auth::id() : null,
             'verified_at' => $validated['verification_status'] === 'Verified' ? now() : null,

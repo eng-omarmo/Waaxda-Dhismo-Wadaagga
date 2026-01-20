@@ -156,6 +156,13 @@
                             </a>
                         </li>
 
+                        <li class="sidebar-item {{ request()->is('admin/contacts') ? 'active' : '' }}">
+                            <a href="{{ route('admin.contacts.index') }}" class="sidebar-link">
+                                <i class="bi bi-envelope"></i>
+                                <span>Landing Contacts</span>
+                            </a>
+                        </li>
+
                         <li class="sidebar-item has-sub {{ request()->is('admin/reports') ? 'active' : '' }}">
                             <a href="{{ url('/admin/reports') }}" class="sidebar-link">
                                 <i class="bi bi-bar-chart"></i>

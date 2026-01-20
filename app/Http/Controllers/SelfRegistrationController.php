@@ -18,6 +18,7 @@ class SelfRegistrationController extends Controller
     public function start()
     {
         $amount = (float) env('REGISTRATION_FEE', 25.00);
+
         return view('register.unified', compact('amount'));
     }
 
@@ -104,7 +105,7 @@ class SelfRegistrationController extends Controller
                 Mail::to($user->email)->send(new SelfRegistrationCompleted($user, $payment, $password, $receiptUrl));
             } catch (\Throwable $e) {
                 // Log error but don't fail registration
-                Log::error('Failed to send registration email: ' . $e->getMessage());
+                Log::error('Failed to send registration email: '.$e->getMessage());
             }
 
             return redirect()->route('dashboard')->with('status', 'Registration successful! Your account has been created and you are now logged in.');
@@ -112,7 +113,8 @@ class SelfRegistrationController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Registration error: ' . $e->getMessage());
+            Log::error('Registration error: '.$e->getMessage());
+
             return back()->withErrors(['registration' => 'An error occurred during registration. Please try again or contact support if the problem persists.'])->withInput();
         }
     }

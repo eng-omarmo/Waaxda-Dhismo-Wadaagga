@@ -37,6 +37,7 @@ class SelfServiceController extends Controller
                 'ip' => request()->ip(),
                 'ua' => substr((string) request()->userAgent(), 0, 255),
             ]);
+
             return redirect()->route('landing.page.index')->withErrors(['serviceId' => 'Invalid service ID. Please select a service from the homepage.']);
         }
 
@@ -49,6 +50,7 @@ class SelfServiceController extends Controller
                 'ip' => request()->ip(),
                 'ua' => substr((string) request()->userAgent(), 0, 255),
             ]);
+
             return redirect()->route('landing.page.index')->withErrors(['serviceId' => 'Service not found. Please select a service from the homepage.']);
         }
 
@@ -134,6 +136,7 @@ class SelfServiceController extends Controller
         if ($request->filled('payment_method')) {
             return $this->processPay($request);
         }
+
         return redirect()->route('portal.info');
     }
 

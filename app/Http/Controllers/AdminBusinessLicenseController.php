@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessLicense;
 use App\Models\BusinessLicenseChange;
+use App\Models\Service;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +89,35 @@ class AdminBusinessLicenseController extends Controller
         $license->registrant_phone = $request->registrant_phone;
         $license->save();
 
+        $service = Service::where('slug', 'business-license')->first();
+        if ($service) {
+            $statusForRequest = $license->status === 'approved' ? 'verified' : 'pending';
+            ServiceRequest::updateOrCreate(
+                [
+                    'service_id' => $service->id,
+                    'user_email' => $license->registrant_email,
+                ],
+                [
+                    'user_id' => Auth::id(),
+                    'user_full_name' => $license->registrant_name,
+                    'user_email' => $license->registrant_email,
+                    'user_phone' => $license->registrant_phone,
+                    'user_national_id' => null,
+                    'request_details' => [
+                        'company_name' => $license->company_name,
+                        'license_type' => $license->license_type,
+                        'project_id' => $license->project_id,
+                        'admin_comments' => $license->admin_comments,
+                        'verification_status' => $license->verification_status,
+                        'expires_at' => $license->expires_at?->toDateString(),
+                    ],
+                    'status' => $statusForRequest,
+                    'processed_by' => $statusForRequest === 'verified' ? Auth::id() : null,
+                    'processed_at' => $statusForRequest === 'verified' ? now() : null,
+                ]
+            );
+        }
+
         $after = $license->only(array_keys($before));
         $changes = [];
         foreach ($before as $k => $v) {
@@ -123,6 +154,34 @@ class AdminBusinessLicenseController extends Controller
         $license->approved_by = Auth::id();
         $license->approved_at = now();
         $license->save();
+
+        $service = Service::where('slug', 'business-license')->first();
+        if ($service) {
+            ServiceRequest::updateOrCreate(
+                [
+                    'service_id' => $service->id,
+                    'user_email' => $license->registrant_email,
+                ],
+                [
+                    'user_id' => Auth::id(),
+                    'user_full_name' => $license->registrant_name,
+                    'user_email' => $license->registrant_email,
+                    'user_phone' => $license->registrant_phone,
+                    'user_national_id' => null,
+                    'request_details' => [
+                        'company_name' => $license->company_name,
+                        'license_type' => $license->license_type,
+                        'project_id' => $license->project_id,
+                        'admin_comments' => $license->admin_comments,
+                        'verification_status' => $license->verification_status,
+                        'expires_at' => $license->expires_at?->toDateString(),
+                    ],
+                    'status' => 'verified',
+                    'processed_by' => Auth::id(),
+                    'processed_at' => now(),
+                ]
+            );
+        }
 
         $changes = [];
         if ($beforeStatus !== $license->status) {

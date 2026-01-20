@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class CertificateController extends Controller
 {
@@ -321,6 +322,34 @@ class CertificateController extends Controller
         $certNumber = 'BRA/CS/'.date('Y').'/'.str_pad($uid, 5, '0', STR_PAD_LEFT);
         $verifyCode = 'BRA-CS-'.substr(strtoupper(hash('crc32', $uid.'BANAADIR2024')), 0, 8);
 
+        $sig = hash_hmac('sha256', $uid, config('app.key'));
+        $verificationUrl = route('certificates.verify', ['uid' => $uid, 'sig' => $sig]);
+
+        // Generate QR code as SVG string
+        $qrSvg = QrCode::format('svg')->size(200)->margin(1)->generate($verificationUrl);
+
+        // Encode the SVG for embedding in HTML
+        $qrEncoded = rawurlencode($qrSvg);
+
+        $logoCandidates = [
+            public_path('assets/images/logo/somali-government-logo.png'),
+            public_path('assets/images/logo/OIP.jfif'),
+        ];
+        $logoDataUri = null;
+        foreach ($logoCandidates as $p) {
+            if (is_file($p)) {
+                $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION));
+                $mime = ($ext === 'png') ? 'image/png' : (($ext === 'jpg' || $ext === 'jpeg') ? 'image/jpeg' : 'image/jfif');
+                $logoDataUri = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($p));
+                break;
+            }
+        }
+        if (! $logoDataUri) {
+            $somaliFlagSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200"><rect width="300" height="200" fill="#4189DD"/><polygon points="150,50 162.5,87.5 202.5,87.5 172.5,112.5 185,150 150,125 115,150 127.5,112.5 97.5,87.5 137.5,87.5" fill="white"/></svg>';
+            $logoDataUri = 'data:image/svg+xml;base64,'.base64_encode($somaliFlagSvg);
+        }
+        $logoHtml = '<img src="'.$logoDataUri.'" class="government-logo" alt="Government Logo">';
+
         $html = '
 <!DOCTYPE html>
 <html lang="so">
@@ -334,40 +363,238 @@ class CertificateController extends Controller
         .official-border { position: absolute; top: 8mm; left: 8mm; right: 8mm; bottom: 8mm; border: 1.5mm double '.$brandPrimary.'; background: #ffffff; }
         .inner-border { position: absolute; top: 4mm; left: 4mm; right: 4mm; bottom: 4mm; border: 1px solid '.$brandGold.'; }
 
-        .government-seal { position: absolute; top: 10mm; left: 50%; transform: translateX(-50%); text-align: center; width: 60%; }
-        .national-emblem { font-size: 36pt; color: '.$brandPrimary.'; margin-bottom: 2mm; text-align: center; }
-        .republic-title { font-size: 14pt; font-weight: bold; color: '.$brandPrimary.'; margin-bottom: 1mm; text-align: center; }
-        .region-title { font-size: 20pt; font-weight: bold; color: '.$brandPrimary.'; text-transform: uppercase; text-align: center; }
+        /* Government Logo and Header */
+        .government-header {
+            position: absolute;
+            top: 5mm;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
 
-        .certificate-header { position: absolute; top: 50mm; left: 50%; transform: translateX(-50%); text-align: center; width: 80%; }
-        .certificate-title { font-size: 28pt; font-weight: bold; color: '.$brandPrimary.'; margin: 10mm 0 5mm; padding-bottom: 5mm; border-bottom: 2px solid '.$brandGold.'; text-align: center; }
-        .certificate-subtitle { font-size: 14pt; color: #333; font-style: italic; text-align: center; }
+        .government-logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 6mm;
+            width: 100%;
+            padding: 0 20mm;
+        }
 
-        .content-area { position: absolute; top: 105mm; left: 25mm; right: 25mm; text-align: center; }
-        .official-statement { font-size: 12pt; line-height: 1.6; margin-bottom: 10mm; color: #222; text-align: center; }
-        .recipient-name { font-family: "Georgia", serif; font-size: 32pt; font-weight: bold; color: #000; text-decoration: underline; text-decoration-color: '.$brandGold.'; text-align: center; margin-bottom: 10mm; }
+        .government-logo {
+            height: 25mm;
+            width: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
 
-        .service-name { font-size: 18pt; font-weight: bold; color: '.$brandPrimary.'; background: #f8f9fa; padding: 4mm 10mm; border-left: 5mm solid '.$brandRed.'; border-right: 5mm solid '.$brandLightBlue.'; display: inline-block; }
+        .government-text {
+            text-align: center;
+            flex-grow: 1;
+            margin-top: 2mm;
+        }
+
+        .national-emblem {
+            font-size: 28pt;
+            color: '.$brandPrimary.';
+            margin-bottom: 1mm;
+            text-align: center;
+        }
+        .republic-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: '.$brandPrimary.';
+            margin-bottom: 1mm;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .region-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: '.$brandPrimary.';
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .certificate-header {
+            position: absolute;
+            top: 40mm;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            width: 80%;
+        }
+        .certificate-title {
+            font-size: 28pt;
+            font-weight: bold;
+            color: '.$brandPrimary.';
+            margin: 5mm 0 3mm;
+            padding-bottom: 3mm;
+            border-bottom: 2px solid '.$brandGold.';
+            text-align: center;
+        }
+        .certificate-subtitle {
+            font-size: 14pt;
+            color: #333;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .content-area {
+            position: absolute;
+            top: 90mm;
+            left: 25mm;
+            right: 25mm;
+            text-align: center;
+        }
+        .official-statement {
+            font-size: 12pt;
+            line-height: 1.6;
+            margin-bottom: 10mm;
+            color: #222;
+            text-align: center;
+        }
+        .recipient-name {
+            font-family: "Georgia", serif;
+            font-size: 32pt;
+            font-weight: bold;
+            color: #000;
+            text-decoration: underline;
+            text-decoration-color: '.$brandGold.';
+            text-align: center;
+            margin-bottom: 10mm;
+        }
+
+        .service-name {
+            font-size: 18pt;
+            font-weight: bold;
+            color: '.$brandPrimary.';
+            background: #f8f9fa;
+            padding: 4mm 10mm;
+            border-left: 5mm solid '.$brandRed.';
+            border-right: 5mm solid '.$brandLightBlue.';
+            display: inline-block;
+        }
 
         /* FIXED FOOTER ALIGNMENT */
-        .official-footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #ccc; padding-top: 8mm; }
-        .issuance-info { width: 35%; text-align: left; }
-        .signature-area { width: 30%; text-align: center; }
-        .verification-area { width: 35%; text-align: right; }
+        .official-footer {
+            position: absolute;
+            bottom: 30mm;
+            left: 20mm;
+            right: 20mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px solid #ccc;
+            padding-top: 8mm;
+        }
+        .issuance-info {
+            width: 40%;
+            text-align: left;
+        }
+        .signature-area {
+            width: 30%;
+            text-align: center;
+        }
 
-        .info-item { margin-bottom: 2mm; font-size: 9pt; }
-        .info-label { font-weight: bold; color: '.$brandPrimary.'; display: inline-block; width: 30mm; }
+        .info-item {
+            margin-bottom: 2mm;
+            font-size: 9pt;
+        }
+        .info-label {
+            font-weight: bold;
+            color: '.$brandPrimary.';
+            display: inline-block;
+            width: 30mm;
+        }
 
-        .signature-line { width: 60mm; height: 1.5px; background: #000; margin: 0 auto 3mm; position: relative; }
-        .official-signature { font-size: 11pt; font-weight: bold; margin-bottom: 1mm; }
-        .official-position { font-size: 9pt; color: #666; line-height: 1.2; }
+        .signature-line {
+            width: 60mm;
+            height: 1.5px;
+            background: #000;
+            margin: 0 auto 3mm;
+            position: relative;
+        }
+        .official-signature {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+        .official-position {
+            font-size: 9pt;
+            color: #666;
+            line-height: 1.2;
+        }
 
-        .verification-box { display: inline-block; text-align: center; padding: 3mm; border: 1px solid '.$brandPrimary.'; border-radius: 2mm; background: #f8f9fa; }
-        .qr-placeholder { width: 55px; height: 55px; border: 1px solid #ddd; margin: 0 auto 2mm; display: flex; align-items: center; justify-content: center; font-size: 7pt; color: #666; background: #fff; }
-        .verification-code { font-family: monospace; font-size: 9pt; font-weight: bold; color: '.$brandPrimary.'; }
+        /* QR CODE STAMP */
+        .qr-stamp {
+            position: absolute;
+            bottom: 30mm;
+            right: 15mm;
+            width: 45mm;
+            height: 45mm;
+            border: 2mm double '.$brandPrimary.';
+            border-radius: 3mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 2mm;
+        }
 
-        .government-stamp { position: absolute; bottom: 12mm; right: 15mm; width: 45mm; height: 45mm; border: 2mm double '.$brandRed.'; border-radius: 50%; display: flex; align-items: center; justify-content: center; transform: rotate(-15deg); opacity: 0.8; z-index: 10; pointer-events: none; }
-        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 90pt; color: rgba(26, 74, 142, 0.04); font-weight: bold; z-index: 0; white-space: nowrap; }
+        .qr-image {
+            width: 35mm;
+            height: 35mm;
+            object-fit: contain;
+        }
+
+        .qr-text {
+            font-size: 7pt;
+            color: '.$brandPrimary.';
+            text-align: center;
+            margin-top: 1mm;
+            font-weight: bold;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 90pt;
+            color: rgba(26, 74, 142, 0.04);
+            font-weight: bold;
+            z-index: 0;
+            white-space: nowrap;
+        }
+
+        /* Mini seal for the signature area */
+        .mini-seal {
+            position: absolute;
+            bottom: 12mm;
+            right: 25mm;
+            width: 15mm;
+            height: 15mm;
+            border: 1mm solid '.$brandPrimary.';
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            color: '.$brandPrimary.';
+            font-weight: bold;
+            background: white;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -375,10 +602,15 @@ class CertificateController extends Controller
         <div class="watermark">BANAADIR OFFICIAL</div>
         <div class="official-border">
             <div class="inner-border">
-                <div class="government-seal">
-                    <div class="national-emblem">★</div>
-                    <div class="republic-title">JAMHUURIYADDA FEDERAALKA SOOMAALIYA</div>
-                    <div class="region-title">DOWLADA GOBOLKA BANAADIR</div>
+                <!-- Government Header with Logo -->
+                <div class="government-header">
+                    <div class="government-logo-container">
+                        '.$logoHtml.'
+                        <div class="government-text">
+                            <div class="region-title">DOWLADA HOOSE EE GOBOLKA BANAADIR</div>
+                        </div>
+
+                    </div>
                 </div>
 
                 <div class="certificate-header">
@@ -400,23 +632,23 @@ class CertificateController extends Controller
                         <div class="info-item"><span class="info-label">Taariikhda:</span> '.$issuedDate.'</div>
                         <div class="info-item"><span class="info-label">Goobta:</span> Muqdisho, Banaadir</div>
                         <div class="info-item"><span class="info-label">Bixiyay:</span> Waaxda Dhismo Wadaagga</div>
+                        <div class="info-item"><span class="info-label">Lambarka:</span> '.$certNumber.'</div>
+                        <div class="info-item"><span class="info-label">Koodhka:</span> '.$verifyCode.'</div>
                     </div>
 
-
-
-                    <div class="verification-area">
-
+                    <div class="signature-area">
+                        <div class="signature-line"></div>
+                        <div class="official-signature">'.$officerName.'</div>
+                        <div class="official-position">'.$officerTitle.'</div>
+                        <div class="mini-seal">GOV<br>SEAL</div>
                     </div>
                 </div>
 
-                <div class="government-stamp">
-                    <div style="text-align: center; color: '.$brandPrimary.'; font-weight: bold; font-size: 8pt;">
-                        <div style="font-size: 14pt; color: '.$brandRed.'">★</div>
-                        <div>RASMI AH</div>
-                        <div>GUDOOMIYE</div>
-                        <div>BANAADIR</div>
-                        <div>'.date('Y').'</div>
-                    </div>
+                <!-- QR CODE STAMP -->
+                <div class="qr-stamp">
+                    <img src="data:image/svg+xml;charset=utf-8,'.$qrEncoded.'" class="qr-image" alt="QR Code for Verification" />
+                    <div class="qr-text">SCAN TO VERIFY</div>
+                    <div class="qr-text">'.$verifyCode.'</div>
                 </div>
             </div>
         </div>
@@ -424,14 +656,13 @@ class CertificateController extends Controller
 </body>
 </html>';
 
-        // Final clean-up of any question marks that might have sneaked into the HTML string
-        $html = str_replace('?', '', $html);
-
         $pdf = Pdf::loadHTML($html)
             ->setPaper('a4', 'landscape')
             ->setOptions([
-                'dpi' => 300,
+                'dpi' => 150,
+                'isHtml5ParserEnabled' => true,
                 'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
                 'defaultFont' => 'dejavu sans',
             ]);
 

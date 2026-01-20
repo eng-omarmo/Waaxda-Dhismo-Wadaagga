@@ -6,6 +6,7 @@ use App\Models\Certificate;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Service;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -75,6 +76,47 @@ class AdminProjectController extends Controller
         $service = Service::where('slug', 'project-registration')->first();
         if ($service) {
             Certificate::issueForProject($project, $service, Auth::id());
+        }
+
+        if ($service) {
+            $schema = [
+                'title' => 'Project Registration – Data Collection',
+                'instructions' => 'Complete all required fields.',
+                'fields' => [
+                    ['name' => 'project_name', 'label' => 'Project Name', 'type' => 'text', 'required' => true],
+                    ['name' => 'location_text', 'label' => 'Location', 'type' => 'text', 'required' => true],
+                    ['name' => 'developer_name', 'label' => 'Developer Name', 'type' => 'text', 'required' => false],
+                    ['name' => 'registrant_national_id', 'label' => 'Registrant National ID', 'type' => 'text', 'required' => false],
+                ],
+            ];
+            $values = [
+                'project_name' => $project->project_name,
+                'location_text' => $project->location_text,
+                'developer_name' => optional($project->developer)->name,
+                'registrant_national_id' => '',
+            ];
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => Auth::id(),
+                'user_full_name' => $project->registrant_name,
+                'user_email' => $project->registrant_email,
+                'user_phone' => $project->registrant_phone,
+                'user_national_id' => null,
+                'request_details' => [
+                    'form_schema' => $schema,
+                    'form_values' => $values,
+                    'form_status' => 'closed',
+                    'form_audit' => [[
+                        'submitted_by' => Auth::id(),
+                        'submitted_at' => now()->toDateTimeString(),
+                        'changes' => [],
+                        'values' => $values,
+                    ]],
+                ],
+                'status' => 'verified',
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
         }
 
         return redirect()->route('admin.projects')->with('status', 'Project registered successfully');

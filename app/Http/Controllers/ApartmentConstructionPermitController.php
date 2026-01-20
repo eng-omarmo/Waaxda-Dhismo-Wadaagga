@@ -161,7 +161,6 @@ class ApartmentConstructionPermitController extends Controller
                 ->orWhere('land_plot_number', 'like', '%'.$request->search.'%');
         }
 
-
         $permits = $query->paginate(10)->withQueryString();
 
         return view('admin.permits.index', compact('permits'));
@@ -199,7 +198,53 @@ class ApartmentConstructionPermitController extends Controller
             $data['approved_drawings_path'] = $request->file('approved_drawings')->store('permit_drawings', 'public');
         }
 
-        ApartmentConstructionPermit::create($data);
+        $permit = ApartmentConstructionPermit::create($data);
+
+        $service = Service::whereIn('slug', ['construction-permit', 'construction-permit-application'])->first();
+        if ($service) {
+            $schema = [
+                'title' => 'Construction Permit – Data Collection',
+                'instructions' => 'Complete all required fields.',
+                'fields' => [
+                    ['name' => 'applicant_full_name', 'label' => 'Applicant Full Name', 'type' => 'text', 'required' => true],
+                    ['name' => 'applicant_role', 'label' => 'Applicant Role', 'type' => 'select', 'options' => ['Owner', 'Legal Representative', 'Developer'], 'required' => true],
+                    ['name' => 'plot_number', 'label' => 'Plot Number', 'type' => 'text', 'required' => true],
+                    ['name' => 'land_title_number', 'label' => 'Land Title Number', 'type' => 'text', 'required' => true],
+                    ['name' => 'land_size_sqm', 'label' => 'Land Size (sqm)', 'type' => 'number', 'required' => true],
+                    ['name' => 'land_location_district', 'label' => 'Location District', 'type' => 'text', 'required' => true],
+                ],
+            ];
+            $values = [
+                'applicant_full_name' => $permit->applicant_name,
+                'applicant_role' => 'Owner',
+                'plot_number' => $permit->land_plot_number,
+                'land_title_number' => $permit->land_title_number ?? '',
+                'land_size_sqm' => 1,
+                'land_location_district' => $permit->location,
+            ];
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => auth()->id(),
+                'user_full_name' => $permit->applicant_name,
+                'user_email' => '',
+                'user_phone' => '',
+                'user_national_id' => $permit->national_id_or_company_registration,
+                'request_details' => [
+                    'form_schema' => $schema,
+                    'form_values' => $values,
+                    'form_status' => 'closed',
+                    'form_audit' => [[
+                        'submitted_by' => auth()->id(),
+                        'submitted_at' => now()->toDateTimeString(),
+                        'changes' => [],
+                        'values' => $values,
+                    ]],
+                ],
+                'status' => $permit->permit_status === 'Approved' ? 'verified' : 'pending',
+                'processed_by' => $permit->permit_status === 'Approved' ? auth()->id() : null,
+                'processed_at' => $permit->permit_status === 'Approved' ? now() : null,
+            ]);
+        }
 
         return redirect()->route('admin.permits.index')->with('success', 'Construction permit created successfully.');
     }
@@ -281,22 +326,22 @@ class ApartmentConstructionPermitController extends Controller
         $plotNumber = $permit->land_plot_number;
         $landParcel = \App\Models\LandParcel::where('plot_number', $plotNumber)->first();
 
-        if (!$landParcel) {
+        if (! $landParcel) {
             return back()->withErrors([
-                'land_verification' => 'Land parcel with plot number "'.$plotNumber.'" not found. Please register the land parcel first.'
+                'land_verification' => 'Land parcel with plot number "'.$plotNumber.'" not found. Please register the land parcel first.',
             ])->withInput();
         }
 
         if ($landParcel->verification_status !== 'Verified') {
             return back()->withErrors([
-                'land_verification' => 'Land ownership must be verified before permit approval. Current status: '.$landParcel->verification_status.'. <a href="'.route('admin.land-parcels.show', $landParcel).'">Verify land parcel</a>'
+                'land_verification' => 'Land ownership must be verified before permit approval. Current status: '.$landParcel->verification_status.'. <a href="'.route('admin.land-parcels.show', $landParcel).'">Verify land parcel</a>',
             ])->withInput();
         }
 
         // Check applicant matches verified owner
         if ($landParcel->current_owner_national_id !== $permit->national_id_or_company_registration) {
             return back()->withErrors([
-                'ownership_mismatch' => 'Applicant national ID ('.$permit->national_id_or_company_registration.') does not match verified land owner ('.$landParcel->current_owner_national_id.').'
+                'ownership_mismatch' => 'Applicant national ID ('.$permit->national_id_or_company_registration.') does not match verified land owner ('.$landParcel->current_owner_national_id.').',
             ])->withInput();
         }
 
@@ -320,6 +365,7 @@ class ApartmentConstructionPermitController extends Controller
         $permit->approved_by_admin_id = auth()->id();
         $permit->approved_at = now();
         $permit->save();
+
         return back()->with('success', 'Permit rejected');
     }
 }

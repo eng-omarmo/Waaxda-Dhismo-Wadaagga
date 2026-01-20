@@ -12,6 +12,7 @@ use App\Http\Controllers\ServiceTrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('landing.page.index');
+Route::post('/contact', [LandingPageController::class, 'storeContact'])->middleware('throttle:10,1')->name('contact.store');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -74,14 +75,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
-Route::get('/certificates/verify/{uid}', function ($uid) {
+Route::get('/certificates/verify/{uid}', function (\Illuminate\Http\Request $request, $uid) {
+    $sig = (string) $request->query('sig', '');
+    $expected = hash_hmac('sha256', (string) $uid, config('app.key'));
     $certificate = Certificate::where('certificate_uid', $uid)->first();
+    $valid = (bool) ($certificate && hash_equals($expected, $sig));
 
-    if (! $certificate) {
-        return view('certificates.not-found', ['uid' => $uid]);
-    }
-
-    return view('certificates.verify', compact('certificate'));
+    return view('admin.certificates.verify', [
+        'certificate' => $certificate,
+        'valid' => $valid,
+        'uid' => $uid,
+    ]);
 })->name('certificates.verify');
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -194,6 +198,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/manual-requests/{manual_request}/reject', [\App\Http\Controllers\AdminManualRequestController::class, 'reject'])->name('manual-requests.reject');
     Route::get('/manual-requests/{manual_request}/payments/{payment}/receipt', [\App\Http\Controllers\AdminManualRequestController::class, 'receipt'])->name('manual-requests.receipt');
     Route::post('/manual-requests/{manual_request}/generate-certificate', [\App\Http\Controllers\AdminManualRequestController::class, 'generateCertificate'])->name('manual-requests.generateCertificate');
+    Route::get('/contacts', [\App\Http\Controllers\AdminContactController::class, 'index'])->name('contacts.index');
 });
 
 Route::get('/receipt/{payment}', [\App\Http\Controllers\AdminManualRequestController::class, 'publicReceipt'])->middleware('signed')->name('receipt.show');

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('certificates', function (Blueprint $table) {
             $table->id();
-            $table->string('project_id')->index();
+            $table->string('project_id')->nullable()->index();
             $table->foreignId('service_id')->nullable()->constrained('services')->nullOnDelete();
             $table->string('certificate_number')->unique();
             $table->uuid('certificate_uid')->unique();

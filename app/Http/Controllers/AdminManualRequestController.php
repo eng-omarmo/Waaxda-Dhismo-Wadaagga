@@ -7,6 +7,7 @@ use App\Models\BusinessLicense;
 use App\Models\Certificate;
 use App\Models\ManualOperationLog;
 use App\Models\Organization;
+use App\Models\OwnerProfile;
 use App\Models\PaymentVerification;
 use App\Models\Project;
 use App\Models\Service;
@@ -119,6 +120,7 @@ class AdminManualRequestController extends Controller
             $manual_request->save();
         }
         $values = (array) ($details['form_values'] ?? []);
+
         return view('admin.manual.requests.form', [
             'request' => $manual_request,
             'schema' => $schema,
@@ -135,7 +137,9 @@ class AdminManualRequestController extends Controller
         $rules = [];
         foreach ($fields as $f) {
             $name = (string) ($f['name'] ?? '');
-            if ($name === '') continue;
+            if ($name === '') {
+                continue;
+            }
             $base = match ($f['type'] ?? 'text') {
                 'email' => 'email',
                 'number' => 'numeric',
@@ -245,6 +249,7 @@ class AdminManualRequestController extends Controller
                 ['name' => 'notes', 'label' => 'Notes', 'type' => 'text', 'required' => false],
             ];
         }
+
         return [
             'title' => $title,
             'instructions' => $instructions,
@@ -412,33 +417,7 @@ class AdminManualRequestController extends Controller
             (string) $pv->reference_number,
         ]));
 
-        $receiverType = null;
-        $receiverId = null;
-        if ($service->slug === 'project-registration') {
-            $proj = Project::where('registrant_email', $manual_request->user_email)->orWhere('registrant_phone', $manual_request->user_phone)->latest()->first();
-            if ($proj) {
-                $receiverType = Project::class;
-                $receiverId = $proj->id;
-            }
-        } elseif ($service->slug === 'business-license') {
-            $bl = BusinessLicense::where('registrant_email', $manual_request->user_email)->orWhere('registrant_phone', $manual_request->user_phone)->latest()->first();
-            if ($bl) {
-                $receiverType = 'BusinessLicense';
-                $receiverId = $bl->id;
-            }
-        } elseif ($service->slug === 'ownership-certificate' || $service->slug === 'property-transfer-services') {
-            $apt = Apartment::where('contact_phone', $manual_request->user_phone)->latest()->first();
-            if ($apt) {
-                $receiverType = 'Apartment';
-                $receiverId = (string) $apt->id;
-            }
-        } elseif ($service->slug === 'developer-registration' || $service->slug === 'organization-registration') {
-            $org = Organization::where('contact_email', $manual_request->user_email)->orWhere('contact_phone', $manual_request->user_phone)->latest()->first();
-            if ($org) {
-                $receiverType = Organization::class;
-                $receiverId = (string) $org->id;
-            }
-        }
+        [$receiverType, $receiverId] = $this->persistDomainEntity($manual_request);
 
         $certificate = Certificate::create([
             'receiver_type' => $receiverType,
@@ -495,6 +474,109 @@ class AdminManualRequestController extends Controller
         ]);
 
         return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Certificate generated successfully');
+    }
+
+    private function persistDomainEntity(ServiceRequest $manual_request): array
+    {
+        $service = $manual_request->service;
+        $details = (array) $manual_request->request_details;
+        $values = (array) ($details['form_values'] ?? []);
+        $type = null;
+        $id = null;
+        switch ($service->slug) {
+            case 'project-registration':
+                $proj = Project::where('registrant_email', $manual_request->user_email)
+                    ->orWhere('registrant_phone', $manual_request->user_phone)
+                    ->latest()->first();
+                if (! $proj) {
+                    $proj = Project::create([
+                        'project_name' => (string) ($values['project_name'] ?? 'New Project'),
+                        'location_text' => (string) ($values['location_text'] ?? 'Unknown'),
+                        'developer_id' => null,
+                        'status' => 'Approved',
+                        'registrant_name' => $manual_request->user_full_name,
+                        'registrant_phone' => $manual_request->user_phone,
+                        'registrant_email' => $manual_request->user_email,
+                    ]);
+                }
+                $type = Project::class;
+                $id = $proj->id;
+                break;
+            case 'business-license':
+                $bl = BusinessLicense::where('registrant_email', $manual_request->user_email)
+                    ->orWhere('registrant_phone', $manual_request->user_phone)
+                    ->latest()->first();
+                if (! $bl) {
+                    $bl = BusinessLicense::create([
+                        'company_name' => (string) ($values['company_name'] ?? 'Company'),
+                        'project_id' => null,
+                        'license_type' => (string) ($values['license_type'] ?? 'Commercial'),
+                        'status' => 'approved',
+                        'verification_status' => 'verified',
+                        'expires_at' => null,
+                        'admin_comments' => null,
+                        'registrant_name' => $manual_request->user_full_name,
+                        'registrant_email' => $manual_request->user_email,
+                        'registrant_phone' => $manual_request->user_phone,
+                        'approved_by' => Auth::id(),
+                        'approved_at' => now(),
+                    ]);
+                }
+                $type = BusinessLicense::class;
+                $id = $bl->id;
+                break;
+            case 'developer-registration':
+            case 'organization-registration':
+                $org = Organization::where('contact_email', $manual_request->user_email)
+                    ->orWhere('contact_phone', $manual_request->user_phone)
+                    ->latest()->first();
+                if (! $org) {
+                    $org = Organization::create([
+                        'name' => (string) ($values['organization_name'] ?? 'Organization'),
+                        'registration_number' => (string) ($values['registration_number'] ?? ''),
+                        'address' => (string) ($values['address'] ?? 'N/A'),
+                        'type' => 'Developer',
+                        'contact_full_name' => $manual_request->user_full_name,
+                        'contact_role' => 'Representative',
+                        'contact_phone' => $manual_request->user_phone,
+                        'contact_email' => $manual_request->user_email,
+                        'status' => 'approved',
+                        'admin_notes' => null,
+                    ]);
+                }
+                $type = Organization::class;
+                $id = (string) $org->id;
+                break;
+            case 'ownership-certificate':
+            case 'property-transfer-services':
+                $apt = Apartment::where('contact_phone', $manual_request->user_phone)->latest()->first();
+                if (! $apt) {
+                    $owner = OwnerProfile::firstOrCreate(
+                        ['national_id' => (string) ($values['owner_national_id'] ?? '')],
+                        [
+                            'full_name' => (string) ($values['owner_name'] ?? $manual_request->user_full_name),
+                            'tax_id_number' => null,
+                            'contact_phone' => $manual_request->user_phone,
+                            'contact_email' => $manual_request->user_email,
+                            'address_text' => (string) ($values['owner_address'] ?? ''),
+                        ]
+                    );
+                    $apt = Apartment::create([
+                        'name' => (string) ($values['apartment_number'] ?? 'Apartment'),
+                        'address_city' => (string) ($values['address_city'] ?? ''),
+                        'contact_name' => $manual_request->user_full_name,
+                        'contact_phone' => $manual_request->user_phone,
+                        'contact_email' => $manual_request->user_email,
+                        'notes' => null,
+                        'owner_profile_id' => $owner->id,
+                    ]);
+                }
+                $type = Apartment::class;
+                $id = (string) $apt->id;
+                break;
+        }
+
+        return [$type, $id];
     }
 
     public function reject(Request $request, ServiceRequest $manual_request)

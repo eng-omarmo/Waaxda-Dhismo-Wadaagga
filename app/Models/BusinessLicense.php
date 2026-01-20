@@ -60,6 +60,7 @@ class BusinessLicense extends Model
     public function getStatusBadgeClassAttribute(): string
     {
         $status = strtolower((string) $this->status);
+
         return match ($status) {
             'pending' => 'bg-warning',
             'approved' => 'bg-success',

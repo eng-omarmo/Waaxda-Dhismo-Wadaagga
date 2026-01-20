@@ -22,12 +22,12 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable();
             $table->text('rejection_reason')->nullable();
             $table->timestamps();
-            
+
             // Add foreign key constraint with explicit name
             $table->foreign('land_parcel_id', 'land_ownership_verifications_land_parcel_id_foreign')
-                  ->references('id')
-                  ->on('land_parcels')
-                  ->onDelete('cascade');
+                ->references('id')
+                ->on('land_parcels')
+                ->onDelete('cascade');
         });
     }
 

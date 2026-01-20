@@ -18,12 +18,12 @@ return new class extends Migration
             $table->string('transfer_reference')->nullable();
             $table->unsignedBigInteger('recorded_by_admin_id')->nullable()->index();
             $table->timestamps();
-            
+
             // Add foreign key constraint with explicit name
             $table->foreign('land_parcel_id', 'land_ownership_histories_land_parcel_id_foreign')
-                  ->references('id')
-                  ->on('land_parcels')
-                  ->onDelete('cascade');
+                ->references('id')
+                ->on('land_parcels')
+                ->onDelete('cascade');
         });
     }
 
