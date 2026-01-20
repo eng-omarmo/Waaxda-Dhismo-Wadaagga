@@ -40,6 +40,10 @@ Route::post('/portal/pay', [\App\Http\Controllers\SelfServiceController::class, 
 Route::get('/portal/receipt', [\App\Http\Controllers\SelfServiceController::class, 'receipt'])->name('portal.receipt');
 Route::get('/portal/resume/{token}', [\App\Http\Controllers\SelfServiceController::class, 'resume'])->name('portal.resume');
 Route::get('/portal/receipt/{payment}', [\App\Http\Controllers\SelfServiceController::class, 'publicReceipt'])->middleware('signed')->name('portal.receipt.public');
+Route::match(['GET','POST'], '/portal/callback/success', [\App\Http\Controllers\SelfServiceController::class, 'callbackSuccess'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('portal.success');
+Route::match(['GET','POST'], '/portal/callback/failure', [\App\Http\Controllers\SelfServiceController::class, 'callbackFailure'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('portal.failure');
+Route::match(['GET','POST'], '/payment/callback/success', [\App\Http\Controllers\SelfServiceController::class, 'callbackSuccess'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('payment.callback.success');
+Route::match(['GET','POST'], '/payment/callback/failure', [\App\Http\Controllers\SelfServiceController::class, 'callbackFailure'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('payment.callback.failure');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.attempt');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -80,7 +84,6 @@ Route::get('/certificates/verify/{uid}', function (\Illuminate\Http\Request $req
     $expected = hash_hmac('sha256', (string) $uid, config('app.key'));
     $certificate = Certificate::where('certificate_uid', $uid)->first();
     $valid = (bool) ($certificate && hash_equals($expected, $sig));
-
     return view('admin.certificates.verify', [
         'certificate' => $certificate,
         'valid' => $valid,

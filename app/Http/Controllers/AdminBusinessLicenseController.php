@@ -73,8 +73,16 @@ class AdminBusinessLicenseController extends Controller
         ]);
 
         $before = $license->only([
-            'company_name', 'project_id', 'license_type', 'status', 'verification_status', 'expires_at', 'admin_comments',
-            'registrant_name', 'registrant_email', 'registrant_phone',
+            'company_name',
+            'project_id',
+            'license_type',
+            'status',
+            'verification_status',
+            'expires_at',
+            'admin_comments',
+            'registrant_name',
+            'registrant_email',
+            'registrant_phone',
         ]);
 
         $license->company_name = $request->company_name;

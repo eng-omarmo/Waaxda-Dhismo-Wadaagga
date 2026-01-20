@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ContactMessage;
 use App\Models\Service;
+use App\Models\ContactMessage;
 use Illuminate\Http\Request;
 
 class LandingPageController extends Controller

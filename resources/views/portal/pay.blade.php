@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -12,6 +12,19 @@
         <div class="col-lg-6">
           <div class="card shadow-sm">
             <div class="card-body">
+              @if(session('success'))
+              <div class="alert alert-success">{{ session('success') }}</div>
+              @endif
+              @if($errors->any())
+              <div class="alert alert-danger">
+                <div class="mb-2">There was a problem initializing the payment:</div>
+                <ul class="mb-0">
+                  @foreach($errors->all() as $error)
+                  <li>{{ $error }}</li>
+                  @endforeach
+                </ul>
+              </div>
+              @endif
               <div class="mb-4">
                 <div class="d-flex justify-content-between">
                   @php

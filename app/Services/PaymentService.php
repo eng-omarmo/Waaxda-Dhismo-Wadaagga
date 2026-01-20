@@ -11,14 +11,27 @@ class PaymentService
 
     public function __construct()
     {
-
-        $this->config = config('somx');
+        $this->config = config('somx') ?? [
+            'endpoints' => [
+                'verify' => 'https://pay.somxchange.com/merchant/api/verify',
+                'transaction' => 'https://pay.somxchange.com/merchant/api/transaction-info',
+                'transaction-verify' => 'https://pay.somxchange.com/merchant/api/verify-transaction',
+            ],
+            'credentials' => [
+                'client_id' => env('SOMX_CLIENT_ID'),
+                'client_secret' => env('SOMX_CLIENT_SECRET'),
+            ],
+        ];
     }
 
     public function getAccessToken()
     {
         try {
-            $response = Http::asForm()->post($this->config['endpoints']['verify'], [
+            $response = Http::withOptions([
+                'verify' => true,
+                'timeout' => 20,
+                'connect_timeout' => 10,
+            ])->asForm()->post($this->config['endpoints']['verify'], [
                 'client_id' => $this->config['credentials']['client_id'],
                 'client_secret' => $this->config['credentials']['client_secret'],
             ]);
@@ -39,7 +52,7 @@ class PaymentService
             if (is_string($data)) {
                 $decodedData = json_decode($data, true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    throw new \Exception('Failed to decode nested JSON: '.json_last_error_msg());
+                    throw new \Exception('Failed to decode nested JSON: ' . json_last_error_msg());
                 }
                 $data = $decodedData;
             }
@@ -62,6 +75,7 @@ class PaymentService
     public function createTransaction(array $transactionData)
     {
         try {
+            $this->validateTransactionPayload($transactionData);
             $token = $this->getAccessToken();
 
             // Verify the transaction endpoint URL
@@ -70,8 +84,12 @@ class PaymentService
                 throw new \Exception("Invalid transaction endpoint URL: {$endpoint}");
             }
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$token,
+            $response = Http::withOptions([
+                'verify' => true,
+                'timeout' => 20,
+                'connect_timeout' => 10,
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
             ])->post($endpoint, $transactionData);
 
@@ -90,13 +108,21 @@ class PaymentService
                     ['status' => $response->status()],
                     $errorData
                 ));
-                throw new \Exception('Payment failed: '.($errorData['message'] ?? 'Unknown error'));
+                throw new \Exception('Payment failed: ' . ($errorData['message'] ?? 'Unknown error'));
             }
 
             $responseData = $response->json();
             Log::info('Transaction Response', ['data' => $responseData]);
 
-            return $responseData['data']['approvedUrl'] ?? $responseData['data'] ?? null;
+            $data = $responseData['data'] ?? $responseData;
+            $approved = is_array($data) ? ($data['approvedUrl'] ?? $data['approved_url'] ?? null) : null;
+            $txnId = is_array($data) ? ($data['transactionId'] ?? $data['transaction_id'] ?? null) : null;
+
+            return [
+                'approved_url' => $approved,
+                'transaction_id' => $txnId,
+                'raw' => $responseData,
+            ];
         } catch (\Exception $e) {
             Log::error('Transaction Error', [
                 'error' => $e->getMessage(),
@@ -118,10 +144,14 @@ class PaymentService
                 throw new \Exception("Invalid transaction endpoint URL: {$endpoint}");
             }
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$token,
+            $response = Http::withOptions([
+                'verify' => true,
+                'timeout' => 20,
+                'connect_timeout' => 10,
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
-            ])->get($endpoint.'/'.$transactionId);
+            ])->get($endpoint . '/' . $transactionId);
 
             if ($response->status() === 404) {
                 Log::error('Transaction endpoint not found', [
@@ -138,7 +168,7 @@ class PaymentService
                     ['status' => $response->status()],
                     $errorData
                 ));
-                throw new \Exception('Payment failed: '.($errorData['message'] ?? 'Unknown error'));
+                throw new \Exception('Payment failed: ' . ($errorData['message'] ?? 'Unknown error'));
             }
 
             $responseData = $response->json();
@@ -151,6 +181,31 @@ class PaymentService
                 'endpoint' => $endpoint ?? 'not-set',
             ]);
             throw $e;
+        }
+    }
+
+    private function validateTransactionPayload(array $payload): void
+    {
+        $phone = (string) ($payload['phone'] ?? '');
+        $amount = (float) ($payload['amount'] ?? 0);
+        $currency = (string) ($payload['currency'] ?? '');
+        $success = (string) ($payload['successUrl'] ?? '');
+        $cancel = (string) ($payload['cancelUrl'] ?? '');
+        $order = (array) ($payload['order_info'] ?? []);
+        if (! preg_match('/^\\+[1-9]\\d{1,14}$/', $phone)) {
+            throw new \Exception('Invalid phone format, must be E.164');
+        }
+        if ($amount < 0.01) {
+            throw new \Exception('Invalid amount, must be at least 0.01');
+        }
+        if ($currency !== 'USD') {
+            throw new \Exception('Unsupported currency');
+        }
+        if (! filter_var($success, FILTER_VALIDATE_URL) || ! filter_var($cancel, FILTER_VALIDATE_URL)) {
+            throw new \Exception('Invalid callback URLs');
+        }
+        if (! isset($order['item_name']) || ! isset($order['order_no'])) {
+            throw new \Exception('Missing order info');
         }
     }
 }

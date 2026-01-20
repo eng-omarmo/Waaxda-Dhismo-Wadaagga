@@ -2,9 +2,9 @@
 
 return [
     'endpoints' => [
-        'verify' => 'https://pay.somxchange.com/merchant/api/verify',
-        'transaction' => 'https://pay.somxchange.com/merchant/api/transaction-info',
-        'transaction-verify' => 'https://pay.somxchange.com/merchant/api/verify-transaction',
+        'verify' => 'http://localhost:8080/somxchange-main/api/v2/merchant/api/verify',
+        'transaction' => 'http://localhost:8080/somxchange-main/api/v2/merchant/api/transaction-info',
+        'transaction-verify' => 'http://localhost:8080/somxchange-main/api/v2/merchant/api/verify-transaction',
     ],
     'credentials' => [
         'client_id' => env('SOMX_CLIENT_ID'),
