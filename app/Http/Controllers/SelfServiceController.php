@@ -401,6 +401,9 @@ class SelfServiceController extends Controller
                 'errors' => ['Payment record missing'],
             ], 404)->withHeaders($this->securityHeaders());
         }
+        if ($transactionId === '' && $payment) {
+            $transactionId = (string) $payment->transaction_id;
+        }
 
         try {
             $ps = new PaymentService();
@@ -451,6 +454,11 @@ class SelfServiceController extends Controller
             request()->session()->put('portal_reg_id', $reg->id);
             $reg->update(['status' => 'paid', 'step' => 3]);
         }
+        $receiptUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.receipt.public', now()->addDays(7), ['payment' => $payment->id]);
+        $meta = (array) $payment->metadata;
+        $meta['receipt_url'] = $receiptUrl;
+        $payment->metadata = $meta;
+        $payment->save();
         $next = route('portal.details');
         if ($reg) {
             $map = [
@@ -467,7 +475,7 @@ class SelfServiceController extends Controller
             }
         }
 
-        return redirect($next)->with('success', 'Payment successful');
+        return redirect($next)->with(['success' => 'Payment successful', 'receipt_url' => $receiptUrl]);
     }
 
     public function callbackFailure(Request $request)

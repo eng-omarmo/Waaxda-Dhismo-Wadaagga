@@ -53,6 +53,7 @@ class PaymentCallbackTest extends TestCase
         $resp = $this->get('/payment/callback/success?transactionId=TX-SUCCESS-123');
         $resp->assertStatus(302);
         $resp->assertSessionHas('success');
+        $resp->assertSessionHas('receipt_url');
         $payment->refresh();
         $this->assertSame('succeeded', $payment->status);
         $this->assertNotNull($payment->verified_at);
@@ -99,11 +100,58 @@ class PaymentCallbackTest extends TestCase
         ]);
         $resp = $this->post('/payment/callback/success', ['transactionId' => 'TX-SUCCESS-POST']);
         $resp->assertStatus(302);
+        $resp->assertSessionHas('receipt_url');
         $payment->refresh();
         $this->assertSame('succeeded', $payment->status);
         $this->assertNotNull($payment->verified_at);
     }
 
+    public function test_success_by_order_no_updates_and_receipt_saved(): void
+    {
+        $service = Service::create([
+            'name' => 'Callback Service',
+            'slug' => 'callback-service-'.Str::lower(Str::random(6)),
+            'description' => 'Desc',
+            'price' => 20.00,
+            'icon_color' => 'bg-primary',
+            'icon_class' => 'bi-gear',
+        ]);
+        $reg = PendingRegistration::create([
+            'service_id' => $service->id,
+            'service_slug' => $service->slug,
+            'full_name' => 'Test User',
+            'email' => 'test@example.com',
+            'phone' => '+252615000000',
+            'status' => 'draft',
+            'step' => 5,
+            'resume_token' => (string) Str::uuid(),
+            'data' => [],
+        ]);
+        $payment = OnlinePayment::create([
+            'pending_registration_id' => $reg->id,
+            'provider' => 'somx',
+            'payment_method' => 'initialize',
+            'amount' => $service->price,
+            'currency' => 'USD',
+            'status' => 'initiated',
+            'transaction_id' => 'TX-ORDER-ONLY',
+            'reference' => 'W5MGONGM',
+        ]);
+        Http::fake([
+            'https://pay.somxchange.com/merchant/api/verify' => Http::response([
+                'data' => ['access_token' => 'tok_'.Str::random(10)],
+            ], 200),
+            'https://pay.somxchange.com/merchant/api/verify-transaction/TX-ORDER-ONLY' => Http::response([
+                'data' => ['status' => 'success', 'responseCode' => '00'],
+            ], 200),
+        ]);
+        $resp = $this->get('/payment/callback/success?order_no=W5MGONGM');
+        $resp->assertStatus(302);
+        $payment->refresh();
+        $this->assertSame('succeeded', $payment->status);
+        $this->assertNotNull($payment->verified_at);
+        $this->assertNotEmpty((string) (($payment->metadata['receipt_url'] ?? '') ?: ''));
+    }
     public function test_get_failure_displays_page_and_marks_failed(): void
     {
         $service = Service::create([
