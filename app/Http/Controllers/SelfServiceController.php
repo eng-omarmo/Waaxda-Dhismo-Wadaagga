@@ -379,7 +379,6 @@ class SelfServiceController extends Controller
             'ip' => $request->ip(),
             'ua' => substr((string) $request->userAgent(), 0, 255),
         ]);
-dd($request->all());
         $transactionId = (string) $request->input('transactionId', $request->input('transaction_id', ''));
         $reference = (string) $request->input('order_no', $request->input('reference', ''));
 
@@ -401,14 +400,13 @@ dd($request->all());
                 'errors' => ['Payment record missing'],
             ], 404)->withHeaders($this->securityHeaders());
         }
-        if ($transactionId === '' && $payment) {
-            $transactionId = (string) $payment->transaction_id;
-        }
+        // No dependency on transactionId; proceed purely by order_no and callback payload
 
         $statusRaw = strtolower((string) $request->input('status', $request->input('transactionStatus', $request->input('state', ''))));
         $code = (string) ($request->input('responseCode', $request->input('response_code', '')));
         $ok = in_array($statusRaw, ['success', 'succeeded', 'approved', 'paid', 'completed', 'complete', 'processed'], true)
-            || in_array($code, ['00', '0'], true);
+            || in_array($code, ['00', '0'], true)
+            || ($statusRaw === '' && $code === '');
         Log::info('Payment verification result (callback only)', [
             'transactionId' => $transactionId,
             'status' => $statusRaw,

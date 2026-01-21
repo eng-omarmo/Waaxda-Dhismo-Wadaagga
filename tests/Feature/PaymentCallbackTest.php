@@ -128,6 +128,44 @@ class PaymentCallbackTest extends TestCase
         $this->assertNotNull($payment->verified_at);
         $this->assertNotEmpty((string) (($payment->metadata['receipt_url'] ?? '') ?: ''));
     }
+
+    public function test_success_by_order_no_only_without_status_or_code(): void
+    {
+        $service = Service::create([
+            'name' => 'Callback Service',
+            'slug' => 'callback-service-'.Str::lower(Str::random(6)),
+            'description' => 'Desc',
+            'price' => 22.00,
+            'icon_color' => 'bg-primary',
+            'icon_class' => 'bi-gear',
+        ]);
+        $reg = PendingRegistration::create([
+            'service_id' => $service->id,
+            'service_slug' => $service->slug,
+            'full_name' => 'Test User',
+            'email' => 'test@example.com',
+            'phone' => '+252615000000',
+            'status' => 'draft',
+            'step' => 5,
+            'resume_token' => (string) Str::uuid(),
+            'data' => [],
+        ]);
+        $payment = OnlinePayment::create([
+            'pending_registration_id' => $reg->id,
+            'provider' => 'somx',
+            'payment_method' => 'initialize',
+            'amount' => $service->price,
+            'currency' => 'USD',
+            'status' => 'initiated',
+            'transaction_id' => 'TX-ORDER-ONLY-2',
+            'reference' => 'OEXK3Z3F',
+        ]);
+        $resp = $this->get('/payment/callback/success?order_no=OEXK3Z3F');
+        $resp->assertStatus(302);
+        $payment->refresh();
+        $this->assertSame('succeeded', $payment->status);
+        $this->assertNotNull($payment->verified_at);
+    }
     public function test_get_failure_displays_page_and_marks_failed(): void
     {
         $service = Service::create([
