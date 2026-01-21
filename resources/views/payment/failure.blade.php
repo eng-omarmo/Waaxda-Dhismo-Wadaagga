@@ -33,14 +33,23 @@
                 </ul>
               </div>
               <div class="mb-3">
-                <p class="small">{{ $support ?? 'For assistance, contact support.' }}</p>
+                @if(!empty($support))
+                  <div class="alert alert-info">
+                    {{ $support }}
+                  </div>
+                @endif
               </div>
               <div class="d-flex justify-content-between">
                 <a href="{{ ($homeUrl ?? route('landing.page.index')) }}" class="btn btn-outline-secondary">Return to Services</a>
                 <a href="{{ ($retryUrl ?? route('portal.pay')) }}" class="btn btn-primary">Retry Payment</a>
+                @if(!empty($supportMailTo))
+                <a href="{{ $supportMailTo }}" class="btn btn-outline-primary">Contact Support</a>
+                @endif
               </div>
             </div>
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
