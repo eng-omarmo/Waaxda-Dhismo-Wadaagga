@@ -42,15 +42,7 @@ class PaymentCallbackTest extends TestCase
             'transaction_id' => 'TX-SUCCESS-123',
             'reference' => 'REF123',
         ]);
-        Http::fake([
-            'https://pay.somxchange.com/merchant/api/verify' => Http::response([
-                'data' => ['access_token' => 'tok_'.Str::random(10)],
-            ], 200),
-            'https://pay.somxchange.com/merchant/api/verify-transaction/TX-SUCCESS-123' => Http::response([
-                'data' => ['status' => 'success', 'responseCode' => '00'],
-            ], 200),
-        ]);
-        $resp = $this->get('/payment/callback/success?transactionId=TX-SUCCESS-123');
+        $resp = $this->get('/payment/callback/success?transactionId=TX-SUCCESS-123&status=success&responseCode=00');
         $resp->assertStatus(302);
         $resp->assertSessionHas('success');
         $resp->assertSessionHas('receipt_url');
@@ -90,15 +82,7 @@ class PaymentCallbackTest extends TestCase
             'transaction_id' => 'TX-SUCCESS-POST',
             'reference' => 'REFPOST',
         ]);
-        Http::fake([
-            'https://pay.somxchange.com/merchant/api/verify' => Http::response([
-                'data' => ['access_token' => 'tok_'.Str::random(10)],
-            ], 200),
-            'https://pay.somxchange.com/merchant/api/verify-transaction/TX-SUCCESS-POST' => Http::response([
-                'data' => ['status' => 'approved', 'responseCode' => '00'],
-            ], 200),
-        ]);
-        $resp = $this->post('/payment/callback/success', ['transactionId' => 'TX-SUCCESS-POST']);
+        $resp = $this->post('/payment/callback/success', ['transactionId' => 'TX-SUCCESS-POST', 'status' => 'approved', 'responseCode' => '00']);
         $resp->assertStatus(302);
         $resp->assertSessionHas('receipt_url');
         $payment->refresh();
@@ -137,15 +121,7 @@ class PaymentCallbackTest extends TestCase
             'transaction_id' => 'TX-ORDER-ONLY',
             'reference' => 'W5MGONGM',
         ]);
-        Http::fake([
-            'https://pay.somxchange.com/merchant/api/verify' => Http::response([
-                'data' => ['access_token' => 'tok_'.Str::random(10)],
-            ], 200),
-            'https://pay.somxchange.com/merchant/api/verify-transaction/TX-ORDER-ONLY' => Http::response([
-                'data' => ['status' => 'success', 'responseCode' => '00'],
-            ], 200),
-        ]);
-        $resp = $this->get('/payment/callback/success?order_no=W5MGONGM');
+        $resp = $this->get('/payment/callback/success?order_no=W5MGONGM&status=success&responseCode=00');
         $resp->assertStatus(302);
         $payment->refresh();
         $this->assertSame('succeeded', $payment->status);

@@ -405,48 +405,34 @@ class SelfServiceController extends Controller
             $transactionId = (string) $payment->transaction_id;
         }
 
-        try {
-            $ps = new PaymentService();
-            $verify = $transactionId ? $ps->verifyTransaction($transactionId) : null;
-            $statusRaw = strtolower((string) data_get($verify, 'status', data_get($verify, 'transactionStatus', data_get($verify, 'state', ''))));
-            $code = (string) (data_get($verify, 'responseCode', data_get($verify, 'response_code', '')));
-            $ok = in_array($statusRaw, ['success', 'succeeded', 'approved', 'paid', 'completed', 'complete', 'processed'], true)
-                || in_array($code, ['00', '0'], true);
+        $statusRaw = strtolower((string) $request->input('status', $request->input('transactionStatus', $request->input('state', ''))));
+        $code = (string) ($request->input('responseCode', $request->input('response_code', '')));
+        $ok = in_array($statusRaw, ['success', 'succeeded', 'approved', 'paid', 'completed', 'complete', 'processed'], true)
+            || in_array($code, ['00', '0'], true);
+        Log::info('Payment verification result (callback only)', [
+            'transactionId' => $transactionId,
+            'status' => $statusRaw,
+            'response_code' => $code,
+            'payload' => $request->all(),
+        ]);
+        $payment->status = $ok ? 'succeeded' : 'failed';
+        $payment->verified_at = now();
+        $meta = (array) $payment->metadata;
+        $meta['gateway_status'] = $statusRaw;
+        $meta['gateway_response_code'] = $code;
+        $meta['callback'] = [
+            'method' => $method,
+            'payload' => $request->all(),
+        ];
+        $payment->metadata = $meta;
+        $payment->save();
 
-            Log::info('Payment verification result', [
-                'transactionId' => $transactionId,
-                'status' => $statusRaw,
-                'response_code' => $code,
-                'verification' => $verify,
-            ]);
-            $payment->status = $ok ? 'succeeded' : 'failed';
-            $payment->verified_at = now();
-            $meta = (array) $payment->metadata;
-            $meta['verification'] = $verify;
-            $meta['callback'] = [
-                'method' => $method,
-                'payload' => $request->all(),
-            ];
-            $payment->metadata = $meta;
-            $payment->save();
-
-            if (! $ok) {
-                return response()->view('payment.failure', [
-                    'title' => 'Payment Verification Failed',
-                    'message' => 'Your payment could not be verified.',
-                    'errors' => [$statusRaw ?: 'verification_failed'],
-                ], 400)->withHeaders($this->securityHeaders());
-            }
-        } catch (\Throwable $e) {
-            Log::error('Payment verification error (success callback)', [
-                'error' => $e->getMessage(),
-                'transactionId' => $transactionId,
-            ]);
+        if (! $ok) {
             return response()->view('payment.failure', [
-                'title' => 'Payment Error',
-                'message' => 'An error occurred while verifying your payment.',
-                'errors' => [$e->getMessage()],
-            ], 500)->withHeaders($this->securityHeaders());
+                'title' => 'Payment Verification Failed',
+                'message' => 'Your payment could not be verified.',
+                'errors' => [$statusRaw ?: 'verification_failed'],
+            ], 400)->withHeaders($this->securityHeaders());
         }
 
         $reg = PendingRegistration::find($payment->pending_registration_id);
