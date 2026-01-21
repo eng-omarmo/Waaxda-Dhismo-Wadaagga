@@ -322,7 +322,7 @@ class SelfServiceController extends Controller
                 'reg_id' => $reg->id,
                 'payload' => $payload,
             ]);
-            return redirect()->route('portal.pay')->withErrors(['payment' => 'Payment initialization failed: '.$e->getMessage()]);
+            return redirect()->route('portal.pay')->withErrors(['payment' => 'Payment initialization failed: ' . $e->getMessage()]);
         }
     }
 
@@ -410,6 +410,12 @@ class SelfServiceController extends Controller
             $ok = in_array($statusRaw, ['success', 'succeeded', 'approved', 'paid', 'completed', 'complete', 'processed'], true)
                 || in_array($code, ['00', '0'], true);
 
+            Log::info('Payment verification result', [
+                'transactionId' => $transactionId,
+                'status' => $statusRaw,
+                'response_code' => $code,
+                'verification' => $verify,
+            ]);
             $payment->status = $ok ? 'succeeded' : 'failed';
             $payment->verified_at = now();
             $meta = (array) $payment->metadata;

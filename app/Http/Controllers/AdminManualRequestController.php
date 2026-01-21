@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Apartment;
+use App\Models\ApartmentConstructionPermit;
 use App\Models\BusinessLicense;
 use App\Models\Certificate;
 use App\Models\ManualOperationLog;
@@ -184,6 +185,18 @@ class AdminManualRequestController extends Controller
             'target_id' => (string) $manual_request->id,
             'details' => ['fields_changed' => array_keys($changes)],
         ]);
+
+        [$receiverType, $receiverId] = $this->persistDomainEntity($manual_request);
+
+        if ($receiverType && $receiverId) {
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'domain_entity_persisted',
+                'target_type' => $receiverType,
+                'target_id' => (string) $receiverId,
+                'details' => ['service_request_id' => (string) $manual_request->id],
+            ]);
+        }
 
         return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Form submitted and linked to request');
     }
@@ -573,6 +586,45 @@ class AdminManualRequestController extends Controller
                 }
                 $type = Apartment::class;
                 $id = (string) $apt->id;
+                break;
+            case 'construction-permit-application':
+            case 'construction-permit':
+                $plot = (string) ($values['plot_number'] ?? '');
+                $applicant = (string) ($values['applicant_full_name'] ?? $manual_request->user_full_name);
+                $location = (string) ($values['land_location_district'] ?? '');
+                $permit = null;
+                if ($plot !== '') {
+                    $permit = ApartmentConstructionPermit::where('land_plot_number', $plot)->latest()->first();
+                }
+                if (! $permit) {
+                    $permit = ApartmentConstructionPermit::create([
+                        'applicant_name' => $applicant === '' ? $manual_request->user_full_name : $applicant,
+                        'national_id_or_company_registration' => (string) ($manual_request->user_national_id ?? ''),
+                        'land_plot_number' => $plot,
+                        'location' => $location,
+                        'number_of_floors' => 1,
+                        'number_of_units' => 1,
+                        'approved_drawings_path' => null,
+                        'engineer_or_architect_name' => 'Pending',
+                        'engineer_or_architect_license' => null,
+                        'permit_issue_date' => null,
+                        'permit_expiry_date' => null,
+                        'permit_status' => 'Pending',
+                    ]);
+                } else {
+                    $update = [];
+                    if ($applicant !== '') {
+                        $update['applicant_name'] = $applicant;
+                    }
+                    if ($location !== '') {
+                        $update['location'] = $location;
+                    }
+                    if (! empty($update)) {
+                        $permit->update($update);
+                    }
+                }
+                $type = ApartmentConstructionPermit::class;
+                $id = (string) $permit->id;
                 break;
         }
 

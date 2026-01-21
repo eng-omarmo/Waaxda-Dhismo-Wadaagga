@@ -84,6 +84,11 @@ class PaymentService
                 throw new \Exception("Invalid transaction endpoint URL: {$endpoint}");
             }
 
+            Log::info('Payment API Request (transaction)', [
+                'endpoint' => $endpoint,
+                'auth' => 'Bearer ' . substr((string) $token, 0, 6) . '…',
+                'payload' => $transactionData,
+            ]);
             $response = Http::withOptions([
                 'verify' => true,
                 'timeout' => 20,
@@ -93,6 +98,13 @@ class PaymentService
                 'Accept' => 'application/json',
             ])->post($endpoint, $transactionData);
 
+            Log::info('Payment API Response (transaction)', [
+                'endpoint' => $endpoint,
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->body(),
+                'json' => $response->json(),
+            ]);
             if ($response->status() === 404) {
                 Log::error('Transaction endpoint not found', [
                     'endpoint' => $endpoint,
@@ -112,11 +124,19 @@ class PaymentService
             }
 
             $responseData = $response->json();
-            Log::info('Transaction Response', ['data' => $responseData]);
+            Log::info('Transaction Response Parsed', ['data' => $responseData]);
 
             $data = $responseData['data'] ?? $responseData;
             $approved = is_array($data) ? ($data['approvedUrl'] ?? $data['approved_url'] ?? null) : null;
             $txnId = is_array($data) ? ($data['transactionId'] ?? $data['transaction_id'] ?? null) : null;
+            $code = is_array($data) ? ($data['responseCode'] ?? $data['response_code'] ?? null) : null;
+            $status = is_array($data) ? ($data['status'] ?? $data['transactionStatus'] ?? $data['state'] ?? null) : null;
+            Log::info('Transaction Parsed Fields', [
+                'approved_url' => $approved,
+                'transaction_id' => $txnId,
+                'response_code' => $code,
+                'status' => $status,
+            ]);
 
             return [
                 'approved_url' => $approved,
@@ -144,6 +164,11 @@ class PaymentService
                 throw new \Exception("Invalid transaction endpoint URL: {$endpoint}");
             }
 
+            Log::info('Payment API Request (verify)', [
+                'endpoint' => $endpoint,
+                'auth' => 'Bearer ' . substr((string) $token, 0, 6) . '…',
+                'transaction_id' => $transactionId,
+            ]);
             $response = Http::withOptions([
                 'verify' => true,
                 'timeout' => 20,
@@ -153,6 +178,13 @@ class PaymentService
                 'Accept' => 'application/json',
             ])->get($endpoint . '/' . $transactionId);
 
+            Log::info('Payment API Response (verify)', [
+                'endpoint' => $endpoint,
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->body(),
+                'json' => $response->json(),
+            ]);
             if ($response->status() === 404) {
                 Log::error('Transaction endpoint not found', [
                     'endpoint' => $endpoint,
@@ -172,7 +204,14 @@ class PaymentService
             }
 
             $responseData = $response->json();
-            Log::info('Transaction Response', ['data' => $responseData]);
+            Log::info('Transaction Verify Parsed', ['data' => $responseData]);
+            $code = data_get($responseData, 'data.responseCode', data_get($responseData, 'responseCode', data_get($responseData, 'response_code')));
+            $status = strtolower((string) data_get($responseData, 'data.status', data_get($responseData, 'status')));
+            Log::info('Transaction Verify Fields', [
+                'transaction_id' => $transactionId,
+                'response_code' => $code,
+                'status' => $status,
+            ]);
 
             return $responseData['data'] ?? null;
         } catch (\Exception $e) {
