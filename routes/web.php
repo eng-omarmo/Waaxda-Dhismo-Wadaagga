@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceTrackingController;
 use Illuminate\Support\Facades\Route;
+use App\Models\Certificate;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('landing.page.index');
 Route::post('/contact', [LandingPageController::class, 'storeContact'])->middleware('throttle:10,1')->name('contact.store');
