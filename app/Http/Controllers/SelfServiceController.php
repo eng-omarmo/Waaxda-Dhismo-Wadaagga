@@ -379,7 +379,7 @@ class SelfServiceController extends Controller
             'ip' => $request->ip(),
             'ua' => substr((string) $request->userAgent(), 0, 255),
         ]);
-
+dd($request->all());
         $transactionId = (string) $request->input('transactionId', $request->input('transaction_id', ''));
         $reference = (string) $request->input('order_no', $request->input('reference', ''));
 
