@@ -10,7 +10,7 @@
             <div class="card-header">
                 <h4 class="card-title">Ownership Transfer List</h4>
                 <a href="{{ route('admin.apartment-transfers.create') }}"
-                   class="btn btn-primary float-end">
+                    class="btn btn-primary float-end">
                     New Transfer
                 </a>
             </div>
@@ -26,9 +26,9 @@
                         <div class="col-md-2">
                             <select name="status" class="form-select">
                                 <option value="">Any Status</option>
-                                <option value="Pending" @selected(request('status')==='Pending')>Pending</option>
-                                <option value="Approved" @selected(request('status')==='Approved')>Approved</option>
-                                <option value="Rejected" @selected(request('status')==='Rejected')>Rejected</option>
+                                <option value="Pending" @selected(request('status')==='Pending' )>Pending</option>
+                                <option value="Approved" @selected(request('status')==='Approved' )>Approved</option>
+                                <option value="Rejected" @selected(request('status')==='Rejected' )>Rejected</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -46,7 +46,7 @@
 
                 {{-- Success message --}}
                 @if(session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
+                <div class="alert alert-success">{{ session('success') }}</div>
                 @endif
 
                 {{-- Table --}}
@@ -67,53 +67,53 @@
 
                         <tbody>
                             @forelse($transfers as $transfer)
-                                <tr>
-                                    <td>{{ $transfer->transfer_reference_number }}</td>
-                                    <td>
-                                        Apt {{ $transfer->apartment_number }} <br>
-                                        Unit {{ $transfer->unit_number }}
-                                    </td>
-                                    <td>
-                                        {{ $transfer->previous_owner_name }} <br>
-                                        <small class="text-muted">{{ $transfer->previous_owner_id }}</small>
-                                    </td>
-                                    <td>
-                                        {{ $transfer->new_owner_name }} <br>
-                                        <small class="text-muted">{{ $transfer->new_owner_id }}</small>
-                                    </td>
-                                    <td>{{ $transfer->transfer_reason }}</td>
-                                    <td>{{ $transfer->transfer_date }}</td>
-                                    <td>
-                                        <span class="badge
+                            <tr>
+                                <td>{{ $transfer->transfer_reference_number }}</td>
+                                <td>
+                                    Apt {{ $transfer->apartment_number }} <br>
+                                    Unit {{ $transfer->unit_number }}
+                                </td>
+                                <td>
+                                    {{ $transfer->previous_owner_name }} <br>
+                                    <small class="text-muted">{{ $transfer->previous_owner_id }}</small>
+                                </td>
+                                <td>
+                                    {{ $transfer->new_owner_name }} <br>
+                                    <small class="text-muted">{{ $transfer->new_owner_id }}</small>
+                                </td>
+                                <td>{{ $transfer->transfer_reason }}</td>
+                                <td>{{ $transfer->transfer_date }}</td>
+                                <td>
+                                    <span class="badge
                                             @if($transfer->approval_status === 'Approved') bg-success
                                             @elseif($transfer->approval_status === 'Rejected') bg-danger
                                             @else bg-warning
                                             @endif
                                         ">
-                                            {{ $transfer->approval_status }}
-                                        </span>
-                                    </td>
-                                    <td class="d-flex gap-1">
-                                        <a href="{{ route('admin.apartment-transfers.deed', $transfer) }}" class="btn btn-sm btn-outline-primary">Deed</a>
-                                        @if($transfer->approval_status === 'Pending')
-                                            <form action="{{ route('admin.apartment-transfers.approve', $transfer) }}" method="POST" onsubmit="return confirm('Approve this transfer?');">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                                            </form>
-                                            <form action="{{ route('admin.apartment-transfers.reject', $transfer) }}" method="POST" onsubmit="return confirm('Reject this transfer?');">
-                                                @csrf
-                                                <input type="hidden" name="approval_reason" value="Insufficient documentation">
-                                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                                            </form>
-                                        @endif
-                                    </td>
-                                </tr>
+                                        {{ $transfer->approval_status }}
+                                    </span>
+                                </td>
+                                <td class="d-flex gap-1">
+                                    <a href="{{ route('admin.apartment-transfers.deed', $transfer) }}" class="btn btn-sm btn-outline-primary">Deed</a>
+                                    @if($transfer->approval_status === 'Pending')
+                                    <form action="{{ route('admin.apartment-transfers.approve', $transfer) }}" method="POST" onsubmit="return confirm('Approve this transfer?');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                    </form>
+                                    <form action="{{ route('admin.apartment-transfers.reject', $transfer) }}" method="POST" onsubmit="return confirm('Reject this transfer?');">
+                                        @csrf
+                                        <input type="hidden" name="approval_reason" value="Insufficient documentation">
+                                        <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                    </form>
+                                    @endif
+                                </td>
+                            </tr>
                             @empty
-                                <tr>
-                                    <td colspan="8" class="text-center">
-                                        No ownership transfers found.
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    No ownership transfers found.
+                                </td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>

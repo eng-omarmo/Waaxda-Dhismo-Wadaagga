@@ -7,12 +7,14 @@
 <section class="row">
     <div class="col-12 col-lg-9">
         @php
-            $projectsCount = \App\Models\Project::count();
-            $permitsCount = \App\Models\ApartmentConstructionPermit::count();
-            $apartmentsCount = \App\Models\Apartment::count();
-            $unitsCount = \App\Models\Unit::count();
-            $licensesCount = \App\Models\BusinessLicense::count();
-            $usersCount = \App\Models\User::count();
+        $projectsCount = \App\Models\Project::count();
+        $permitsCount = \App\Models\ApartmentConstructionPermit::count();
+        $apartmentsCount = \App\Models\Apartment::count();
+        $unitsCount = \App\Models\Unit::count();
+        $licensesCount = \App\Models\BusinessLicense::count();
+        $usersCount = \App\Models\User::count();
+        $ownershipClaimsCount = \App\Models\OwnershipClaim::count();
+        $transfersCount = \App\Models\ApartmentTransfer::count();
         @endphp
         <div class="row">
             <div class="col-6 col-lg-3 col-md-6">
@@ -111,7 +113,7 @@
                             </div>
                             <div class="col-md-8">
                                 <h6 class="text-muted font-semibold">Ownership Claims</h6>
-                                <h6 class="font-extrabold mb-0">89</h6>
+                                <h6 class="font-extrabold mb-0">{{ number_format($ownershipClaimsCount) }}</h6>
                             </div>
                         </div>
                     </div>
@@ -128,7 +130,7 @@
                             </div>
                             <div class="col-md-8">
                                 <h6 class="text-muted font-semibold">Transfers</h6>
-                                <h6 class="font-extrabold mb-0">21</h6>
+                                <h6 class="font-extrabold mb-0">{{ number_format($transfersCount) }}</h6>
                             </div>
                         </div>
                     </div>
@@ -169,22 +171,24 @@
                         </thead>
                         <tbody>
                             @php
-                                $pending = \App\Models\ServiceRequest::with('service')->where('status','pending')->latest()->limit(10)->get();
+                            $pending = \App\Models\ServiceRequest::with('service')->where('status','pending')->latest()->limit(10)->get();
                             @endphp
                             @forelse($pending as $p)
-                                @php
-                                    $type = $p->service?->name ?? 'Service';
-                                    $ref = (string) data_get($p->request_details,'transaction_id') ?: (string) data_get($p->request_details,'online_payment_id') ?: '—';
-                                    $badge = 'bg-warning';
-                                @endphp
-                                <tr>
-                                    <td>{{ $type }}</td>
-                                    <td>{{ $ref }}</td>
-                                    <td><span class="badge {{ $badge }}">Pending</span></td>
-                                    <td>{{ $p->created_at?->format('Y-m-d') }}</td>
-                                </tr>
+                            @php
+                            $type = $p->service?->name ?? 'Service';
+                            $ref = (string) data_get($p->request_details,'transaction_id') ?: (string) data_get($p->request_details,'online_payment_id') ?: '—';
+                            $badge = 'bg-warning';
+                            @endphp
+                            <tr>
+                                <td>{{ $type }}</td>
+                                <td>{{ $ref }}</td>
+                                <td><span class="badge {{ $badge }}">Pending</span></td>
+                                <td>{{ $p->created_at?->format('Y-m-d') }}</td>
+                            </tr>
                             @empty
-                                <tr><td colspan="4" class="text-center">No pending approvals</td></tr>
+                            <tr>
+                                <td colspan="4" class="text-center">No pending approvals</td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -197,9 +201,9 @@
             </div>
             <div class="card-body">
                 @php
-                    $pvSummary = \App\Models\PaymentVerification::selectRaw('status, COUNT(*) as cnt, SUM(amount) as total')
-                        ->groupBy('status')->get()->keyBy('status');
-                    $pvStatuses = ['pending','verified','rejected','discrepancy'];
+                $pvSummary = \App\Models\PaymentVerification::selectRaw('status, COUNT(*) as cnt, SUM(amount) as total')
+                ->groupBy('status')->get()->keyBy('status');
+                $pvStatuses = ['pending','verified','rejected','discrepancy'];
                 @endphp
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
@@ -212,17 +216,17 @@
                         </thead>
                         <tbody>
                             @foreach ($pvStatuses as $s)
-                                @php
-                                    $row = $pvSummary[$s] ?? null;
-                                    $count = $row?->cnt ?? 0;
-                                    $total = $row?->total ?? 0;
-                                    $badge = $s==='verified' ? 'bg-success' : ($s==='pending' ? 'bg-warning' : ($s==='rejected' ? 'bg-danger' : 'bg-secondary'));
-                                @endphp
-                                <tr>
-                                    <td><span class="badge {{ $badge }}">{{ ucfirst($s) }}</span></td>
-                                    <td class="text-end">{{ number_format($count) }}</td>
-                                    <td class="text-end">${{ number_format($total, 2) }}</td>
-                                </tr>
+                            @php
+                            $row = $pvSummary[$s] ?? null;
+                            $count = $row?->cnt ?? 0;
+                            $total = $row?->total ?? 0;
+                            $badge = $s==='verified' ? 'bg-success' : ($s==='pending' ? 'bg-warning' : ($s==='rejected' ? 'bg-danger' : 'bg-secondary'));
+                            @endphp
+                            <tr>
+                                <td><span class="badge {{ $badge }}">{{ ucfirst($s) }}</span></td>
+                                <td class="text-end">{{ number_format($count) }}</td>
+                                <td class="text-end">${{ number_format($total, 2) }}</td>
+                            </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -230,7 +234,7 @@
             </div>
         </div>
         @php
-            $recentPayments = \App\Models\PaymentVerification::with(['request.service','verifier'])->latest()->limit(10)->get();
+        $recentPayments = \App\Models\PaymentVerification::with(['request.service','verifier'])->latest()->limit(10)->get();
         @endphp
         <div class="card">
             <div class="card-header">
@@ -250,19 +254,21 @@
                         </thead>
                         <tbody>
                             @forelse ($recentPayments as $pv)
-                                @php
-                                    $svc = $pv->request?->service?->name ?? '—';
-                                    $badge = $pv->status==='verified' ? 'bg-success' : ($pv->status==='pending' ? 'bg-warning' : ($pv->status==='rejected' ? 'bg-danger' : 'bg-secondary'));
-                                @endphp
-                                <tr>
-                                    <td class="text-muted">{{ $pv->reference_number }}</td>
-                                    <td>{{ $svc }}</td>
-                                    <td class="text-end">${{ number_format($pv->amount,2) }}</td>
-                                    <td><span class="badge {{ $badge }}">{{ ucfirst($pv->status) }}</span></td>
-                                    <td>{{ $pv->verified_at?->format('Y-m-d H:i') ?? '—' }}</td>
-                                </tr>
+                            @php
+                            $svc = $pv->request?->service?->name ?? '—';
+                            $badge = $pv->status==='verified' ? 'bg-success' : ($pv->status==='pending' ? 'bg-warning' : ($pv->status==='rejected' ? 'bg-danger' : 'bg-secondary'));
+                            @endphp
+                            <tr>
+                                <td class="text-muted">{{ $pv->reference_number }}</td>
+                                <td>{{ $svc }}</td>
+                                <td class="text-end">${{ number_format($pv->amount,2) }}</td>
+                                <td><span class="badge {{ $badge }}">{{ ucfirst($pv->status) }}</span></td>
+                                <td>{{ $pv->verified_at?->format('Y-m-d H:i') ?? '—' }}</td>
+                            </tr>
                             @empty
-                                <tr><td colspan="5" class="text-center text-muted">No payments found.</td></tr>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No payments found.</td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -272,14 +278,14 @@
     </div>
     <div class="col-12 col-lg-3">
         @php
-            $todayCount = \App\Models\OnlinePayment::where('status','completed')->whereDate('verified_at', now()->toDateString())->count();
-            $todayTotal = \App\Models\OnlinePayment::where('status','completed')->whereDate('verified_at', now()->toDateString())->sum('amount');
-            $weekCount = \App\Models\OnlinePayment::where('status','completed')->whereBetween('verified_at', [now()->startOfWeek(), now()])->count();
-            $weekTotal = \App\Models\OnlinePayment::where('status','completed')->whereBetween('verified_at', [now()->startOfWeek(), now()])->sum('amount');
-            $monthCount = \App\Models\OnlinePayment::where('status','completed')->whereYear('verified_at', now()->year)->whereMonth('verified_at', now()->month)->count();
-            $monthTotal = \App\Models\OnlinePayment::where('status','completed')->whereYear('verified_at', now()->year)->whereMonth('verified_at', now()->month)->sum('amount');
-            $initiatedCount = \App\Models\OnlinePayment::where('status','initiated')->count();
-            $initiatedTotal = \App\Models\OnlinePayment::where('status','initiated')->sum('amount');
+        $todayCount = \App\Models\OnlinePayment::where('status','completed')->whereDate('verified_at', now()->toDateString())->count();
+        $todayTotal = \App\Models\OnlinePayment::where('status','completed')->whereDate('verified_at', now()->toDateString())->sum('amount');
+        $weekCount = \App\Models\OnlinePayment::where('status','completed')->whereBetween('verified_at', [now()->startOfWeek(), now()])->count();
+        $weekTotal = \App\Models\OnlinePayment::where('status','completed')->whereBetween('verified_at', [now()->startOfWeek(), now()])->sum('amount');
+        $monthCount = \App\Models\OnlinePayment::where('status','completed')->whereYear('verified_at', now()->year)->whereMonth('verified_at', now()->month)->count();
+        $monthTotal = \App\Models\OnlinePayment::where('status','completed')->whereYear('verified_at', now()->year)->whereMonth('verified_at', now()->month)->sum('amount');
+        $initiatedCount = \App\Models\OnlinePayment::where('status','initiated')->count();
+        $initiatedTotal = \App\Models\OnlinePayment::where('status','initiated')->sum('amount');
         @endphp
         <div class="card">
             <div class="card-header">
