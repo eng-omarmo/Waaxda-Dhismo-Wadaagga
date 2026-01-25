@@ -196,14 +196,7 @@
                                 <label class="form-label">Approval Comment</label>
                                 <textarea name="approval_comment" class="form-control" rows="3" placeholder="Notes"></textarea>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Electronic Signature</label>
-                                <div class="border rounded p-2">
-                                    <canvas id="signaturePad" width="600" height="180" style="width:100%" aria-label="Signature pad"></canvas>
-                                </div>
-                                <input type="hidden" name="digital_signature_svg" id="signatureData" required>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="clearSignature">Clear</button>
-                            </div>
+
                             <button type="submit" class="btn btn-success">Approve</button>
                         </form>
                     </div>
@@ -263,86 +256,4 @@
 @endsection
 
 @push('page-scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var canvas = document.getElementById('signaturePad');
-        var clearBtn = document.getElementById('clearSignature');
-        var hidden = document.getElementById('signatureData');
-        if (!canvas) return;
-        var ctx = canvas.getContext('2d');
-        var drawing = false;
-        var lastPos = {
-            x: 0,
-            y: 0
-        };
-
-        function getPos(e) {
-            var rect = canvas.getBoundingClientRect();
-            var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-            var y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-            return {
-                x: x,
-                y: y
-            };
-        }
-
-        function updateHidden() {
-            var dataUrl = canvas.toDataURL('image/png');
-            hidden.value = dataUrl;
-        }
-        canvas.addEventListener('mousedown', function(e) {
-            drawing = true;
-            lastPos = getPos(e);
-        });
-        canvas.addEventListener('mousemove', function(e) {
-            if (!drawing) return;
-            var pos = getPos(e);
-            ctx.beginPath();
-            ctx.moveTo(lastPos.x, lastPos.y);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            lastPos = pos;
-            updateHidden();
-        });
-        canvas.addEventListener('mouseup', function() {
-            drawing = false;
-            updateHidden();
-        });
-        canvas.addEventListener('mouseleave', function() {
-            drawing = false;
-        });
-        canvas.addEventListener('touchstart', function(e) {
-            drawing = true;
-            lastPos = getPos(e);
-        }, {
-            passive: true
-        });
-        canvas.addEventListener('touchmove', function(e) {
-            if (!drawing) return;
-            var pos = getPos(e);
-            ctx.beginPath();
-            ctx.moveTo(lastPos.x, lastPos.y);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            lastPos = pos;
-            updateHidden();
-        }, {
-            passive: true
-        });
-        canvas.addEventListener('touchend', function() {
-            drawing = false;
-            updateHidden();
-        });
-        if (clearBtn) {
-            clearBtn.addEventListener('click', function() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                hidden.value = '';
-            });
-        }
-    });
-</script>
 @endpush

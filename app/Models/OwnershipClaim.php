@@ -28,7 +28,6 @@ class OwnershipClaim extends Model
         'reviewer_comments',
         'reviewed_by_admin_id',
         'reviewed_at',
-        'reviewer_signature_svg',
         'last_modified_by_admin_id',
     ];
 

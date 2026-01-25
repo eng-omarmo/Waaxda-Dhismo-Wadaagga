@@ -129,7 +129,6 @@ class AdminOwnershipController extends Controller
         $claim->reviewer_comments = $validated['approval_comment'] ?? null;
         $claim->reviewed_by_admin_id = Auth::id();
         $claim->reviewed_at = now();
-        $claim->reviewer_signature_svg = $validated['digital_signature_svg'];
         $claim->last_modified_by_admin_id = Auth::id();
         $claim->save();
         $service = Service::where('slug', 'ownership-certificate')->first();

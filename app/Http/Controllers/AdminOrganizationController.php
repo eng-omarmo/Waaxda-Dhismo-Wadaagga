@@ -74,8 +74,15 @@ class AdminOrganizationController extends Controller
             'status' => ['required', Rule::in(['pending', 'approved', 'rejected'])],
         ]);
         $org = Organization::create($request->only([
-            'name', 'registration_number', 'address', 'type',
-            'contact_full_name', 'contact_role', 'contact_phone', 'contact_email', 'status',
+            'name',
+            'registration_number',
+            'address',
+            'type',
+            'contact_full_name',
+            'contact_role',
+            'contact_phone',
+            'contact_email',
+            'status',
         ]));
 
         $service = Service::whereIn('slug', ['developer-registration', 'organization-registration'])->first();
@@ -138,8 +145,15 @@ class AdminOrganizationController extends Controller
         ]);
         $original = $organization->getOriginal();
         $organization->fill($request->only([
-            'name', 'registration_number', 'address', 'type',
-            'contact_full_name', 'contact_role', 'contact_phone', 'contact_email', 'status',
+            'name',
+            'registration_number',
+            'address',
+            'type',
+            'contact_full_name',
+            'contact_role',
+            'contact_phone',
+            'contact_email',
+            'status',
         ]));
         $organization->save();
         $changes = [];

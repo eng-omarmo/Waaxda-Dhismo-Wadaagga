@@ -25,7 +25,6 @@ class ApartmentTransfer extends Model
         'approved_by_admin_id',
         'approved_at',
         'approval_reason',
-        'digital_signature_svg',
         'notarized_at',
         'tax_clearance_code',
         'lien_check_status',

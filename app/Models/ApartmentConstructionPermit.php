@@ -26,7 +26,6 @@ class ApartmentConstructionPermit extends Model
         'permit_expiry_date',
         'permit_status',
         'approval_notes',
-        'approval_signature_svg',
         'approved_by_admin_id',
         'approved_at',
     ];

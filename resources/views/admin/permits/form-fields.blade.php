@@ -109,86 +109,15 @@
 </div>
 
 <hr>
-<h5>Approval Notes & Signature</h5>
+<h5>Approval Notes</h5>
 <div class="row">
-  <div class="col-md-6">
+  <div class="col-12">
     <div class="mb-3">
       <label for="approval_notes" class="form-label">Approval Notes</label>
       <textarea id="approval_notes" name="approval_notes" class="form-control" rows="3">{{ old('approval_notes', $permit->approval_notes ?? '') }}</textarea>
     </div>
   </div>
-  <div class="col-md-6">
-    <div class="mb-3">
-      <label class="form-label">Electronic Signature</label>
-      <div class="border rounded p-2">
-        <canvas id="permitSignaturePad" width="600" height="180" style="width:100%" aria-label="Signature pad"></canvas>
-      </div>
-      <input type="hidden" name="digital_signature_svg" id="permitSignatureData">
-      <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="permitClearSignature">Clear</button>
-      @if(isset($permit) && $permit->approval_signature_svg)
-      <div class="mt-2">
-        Current signature captured
-      </div>
-      @endif
-    </div>
-  </div>
 </div>
 
 @push('page-scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  var canvas = document.getElementById('permitSignaturePad');
-  var clearBtn = document.getElementById('permitClearSignature');
-  var hidden = document.getElementById('permitSignatureData');
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  var drawing = false;
-  var lastPos = { x: 0, y: 0 };
-  function getPos(e) {
-    var rect = canvas.getBoundingClientRect();
-    var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    var y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-    return { x: x, y: y };
-  }
-  function updateHidden() {
-    var dataUrl = canvas.toDataURL('image/png');
-    hidden.value = dataUrl;
-  }
-  canvas.addEventListener('mousedown', function(e) { drawing = true; lastPos = getPos(e); });
-  canvas.addEventListener('mousemove', function(e) {
-    if (!drawing) return;
-    var pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(lastPos.x, lastPos.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    lastPos = pos;
-    updateHidden();
-  });
-  canvas.addEventListener('mouseup', function() { drawing = false; updateHidden(); });
-  canvas.addEventListener('mouseleave', function() { drawing = false; });
-  canvas.addEventListener('touchstart', function(e) { drawing = true; lastPos = getPos(e); }, {passive:true});
-  canvas.addEventListener('touchmove', function(e) {
-    if (!drawing) return;
-    var pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(lastPos.x, lastPos.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    lastPos = pos;
-    updateHidden();
-  }, {passive:true});
-  canvas.addEventListener('touchend', function() { drawing = false; updateHidden(); });
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function() {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      hidden.value = '';
-    });
-  }
-});
-</script>
 @endpush

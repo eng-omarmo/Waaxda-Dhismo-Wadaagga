@@ -17,10 +17,10 @@ class ApartmentTransferController extends Controller
         $query = ApartmentTransfer::query()->orderBy('transfer_date', 'desc');
         if (request()->filled('search')) {
             $term = request()->string('search')->toString();
-            $query->where('transfer_reference_number', 'like', '%'.$term.'%')
-                ->orWhere('apartment_number', 'like', '%'.$term.'%')
-                ->orWhere('previous_owner_id', 'like', '%'.$term.'%')
-                ->orWhere('new_owner_id', 'like', '%'.$term.'%');
+            $query->where('transfer_reference_number', 'like', '%' . $term . '%')
+                ->orWhere('apartment_number', 'like', '%' . $term . '%')
+                ->orWhere('previous_owner_id', 'like', '%' . $term . '%')
+                ->orWhere('new_owner_id', 'like', '%' . $term . '%');
         }
         if (request()->filled('status')) {
             $query->where('approval_status', request()->string('status')->toString());
@@ -84,7 +84,7 @@ class ApartmentTransferController extends Controller
 
         $ref = null;
         do {
-            $ref = 'IPAMS-TRF-'.date('Y').'-'.substr($apartment->id, 0, 8).'-'.substr((string) Str::uuid(), 0, 8);
+            $ref = 'IPAMS-TRF-' . date('Y') . '-' . substr($apartment->id, 0, 8) . '-' . substr((string) Str::uuid(), 0, 8);
         } while (ApartmentTransfer::where('transfer_reference_number', $ref)->exists());
 
         $previousOwner = OwnerProfile::where('national_id', $request->previous_owner_id)->first();
@@ -165,13 +165,11 @@ class ApartmentTransferController extends Controller
     {
         $request->validate([
             'approval_reason' => 'nullable|string|max:1000',
-            'digital_signature_svg' => 'nullable|string',
         ]);
         $transfer->approval_status = 'Approved';
         $transfer->approved_by_admin_id = Auth::id();
         $transfer->approved_at = now();
         $transfer->approval_reason = $request->approval_reason;
-        $transfer->digital_signature_svg = $request->digital_signature_svg;
         $transfer->save();
         \App\Models\ManualOperationLog::create([
             'user_id' => Auth::id(),
@@ -218,10 +216,7 @@ class ApartmentTransferController extends Controller
         $dateStr = $transfer->transfer_date?->toDateString() ?: '';
         $approvedStr = $transfer->approved_at?->toDateTimeString() ?: 'Pending';
         $signatureImg = '';
-        if ($transfer->digital_signature_svg && str_starts_with($transfer->digital_signature_svg, 'data:')) {
-            $signatureImg = '<img src="'.e($transfer->digital_signature_svg).'" alt="Digital Signature" style="max-width:180px;max-height:80px">';
-        }
-        $legalDescription = 'Apartment: '.e($propName).($unit ? ' • Unit: '.e($unit) : '').($propCity ? ' • City: '.e($propCity) : '');
+        $legalDescription = 'Apartment: ' . e($propName) . ($unit ? ' • Unit: ' . e($unit) : '') . ($propCity ? ' • City: ' . e($propCity) : '');
         $html = '
 <html>
 <head>
@@ -258,29 +253,29 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
   <div class="watermark">IPAMS</div>
   <div class="content">
     <div class="title">Property Transfer Deed</div>
-    <div class="meta">Reference: '.e($transfer->transfer_reference_number).' • Date: '.e($dateStr).'</div>
+    <div class="meta">Reference: ' . e($transfer->transfer_reference_number) . ' • Date: ' . e($dateStr) . '</div>
 
     <div class="section box">
       <h3>Parties</h3>
       <div class="grid">
         <div>
           <div><strong>Grantor (Previous Owner)</strong></div>
-          <div>Full Legal Name: '.e($transfer->previous_owner_name).'</div>
-          <div>National ID: '.e($transfer->previous_owner_id).'</div>
-          <div>Address: '.e('').' </div>
+          <div>Full Legal Name: ' . e($transfer->previous_owner_name) . '</div>
+          <div>National ID: ' . e($transfer->previous_owner_id) . '</div>
+          <div>Address: ' . e('') . ' </div>
         </div>
         <div>
           <div><strong>Grantee (New Owner)</strong></div>
-          <div>Full Legal Name: '.e($transfer->new_owner_name).'</div>
-          <div>National ID: '.e($transfer->new_owner_id).'</div>
-          <div>Address: '.e('').' </div>
+          <div>Full Legal Name: ' . e($transfer->new_owner_name) . '</div>
+          <div>National ID: ' . e($transfer->new_owner_id) . '</div>
+          <div>Address: ' . e('') . ' </div>
         </div>
       </div>
     </div>
 
     <div class="section box">
       <h3>Property Description</h3>
-      <div>'.($legalDescription).'</div>
+      <div>' . ($legalDescription) . '</div>
       <div class="small">Complete legal description to be appended if required by jurisdiction.</div>
     </div>
 
@@ -310,17 +305,17 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
         <div>
           <div class="signature-line"></div>
           <div>Grantor Signature</div>
-          <div>Name: '.e($transfer->previous_owner_name).'</div>
+          <div>Name: ' . e($transfer->previous_owner_name) . '</div>
         </div>
         <div>
           <div class="signature-line"></div>
           <div>Grantee Signature</div>
-          <div>Name: '.e($transfer->new_owner_name).'</div>
+          <div>Name: ' . e($transfer->new_owner_name) . '</div>
         </div>
         <div>
-          '.($signatureImg ?: '<div class="signature-line" style="width:40mm"></div>').'
+          ' . ($signatureImg ?: '<div class="signature-line" style="width:40mm"></div>') . '
           <div>Authorized Officer</div>
-          <div class="small">Approval: '.e($approvedStr).'</div>
+          <div class="small">Approval: ' . e($approvedStr) . '</div>
         </div>
       </div>
     </div>
@@ -350,11 +345,11 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
 ';
         \Barryvdh\DomPDF\Facade\Pdf::setOptions(['dpi' => 300]);
         $pdfData = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4')->output();
-        $fileName = 'TransferDeed_'.$transfer->transfer_reference_number.'.pdf';
+        $fileName = 'TransferDeed_' . $transfer->transfer_reference_number . '.pdf';
 
         return response($pdfData, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }
@@ -401,8 +396,8 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color:
         }
         $owners = $query
             ->where(function ($sub) use ($q) {
-                $sub->where('full_name', 'like', '%'.$q.'%')
-                    ->orWhere('national_id', 'like', '%'.$q.'%');
+                $sub->where('full_name', 'like', '%' . $q . '%')
+                    ->orWhere('national_id', 'like', '%' . $q . '%');
             })
             ->orderBy('full_name')
             ->limit(10)

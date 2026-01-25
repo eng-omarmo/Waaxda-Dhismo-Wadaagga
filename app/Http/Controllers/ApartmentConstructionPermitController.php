@@ -319,7 +319,6 @@ class ApartmentConstructionPermitController extends Controller
     {
         $validated = $request->validate([
             'approval_notes' => ['nullable', 'string', 'max:2000'],
-            'digital_signature_svg' => ['required', 'string'],
         ]);
 
         // Land Ownership Verification Check
@@ -347,7 +346,6 @@ class ApartmentConstructionPermitController extends Controller
 
         $permit->permit_status = 'Approved';
         $permit->approval_notes = $validated['approval_notes'] ?? null;
-        $permit->approval_signature_svg = $validated['digital_signature_svg'];
         $permit->approved_by_admin_id = auth()->id();
         $permit->approved_at = now();
         $permit->save();
