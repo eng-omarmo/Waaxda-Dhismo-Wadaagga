@@ -69,6 +69,8 @@ Route::get('/services/developer-registration', [OrganizationRegistrationControll
 Route::post('/services/developer-registration', [OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('services.developer-registration.store');
 Route::get('/services/business-license', [BusinessLicenseController::class, 'show'])->name('services.business-license');
 Route::post('/services/business-license', [BusinessLicenseController::class, 'store'])->middleware('throttle:15,1')->name('services.business-license.store');
+Route::get('/services/engineer-license', [\App\Http\Controllers\EngineerLicenseController::class, 'show'])->name('services.engineer-license');
+Route::post('/services/engineer-license', [\App\Http\Controllers\EngineerLicenseController::class, 'store'])->middleware('throttle:15,1')->name('services.engineer-license.store');
 Route::view('/services/ownership-certificate', 'services.ownership-certificate')->name('services.ownership-certificate');
 Route::view('/services/ownership-transfer', 'services.ownership-transfer')->name('services.ownership-transfer');
 Route::get('/services/{slug}', [ServiceController::class, 'show'])->name('services.show');
@@ -131,6 +133,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/licensing/{license}/reject', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'reject'])->name('licensing.reject');
     Route::put('/licensing/{license}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'update'])->name('licensing.update');
     Route::get('/licensing/{license}/documents/{docId}', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'downloadDoc'])->name('licensing.documents.download');
+
+    // Engineer Licenses
+    Route::get('/engineer-licenses', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'index'])->name('engineer-licenses.index');
+    Route::get('/engineer-licenses/{license}', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'show'])->name('engineer-licenses.show');
+    Route::post('/engineer-licenses/{license}/approve', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'approve'])->name('engineer-licenses.approve');
+    Route::post('/engineer-licenses/{license}/reject', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'reject'])->name('engineer-licenses.reject');
+
     // add issue licence
     Route::get('/new-business-license', [\App\Http\Controllers\AdminBusinessLicenseController::class, 'displayIssuePage'])->name('licensing.issue');
     Route::get('/ownership', [\App\Http\Controllers\AdminOwnershipController::class, 'index'])->name('ownership.index');

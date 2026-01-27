@@ -92,6 +92,13 @@
                             </ul>
                         </li>
 
+                        <li class="sidebar-item {{ request()->is('admin/engineer-licenses*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.engineer-licenses.index') }}" class="sidebar-link">
+                                <i class="bi bi-person-badge-fill"></i>
+                                <span>Engineer Licenses</span>
+                            </a>
+                        </li>
+
                         <li class="sidebar-item has-sub {{ request()->is('admin/ownership') ? 'active' : '' }}">
                             <a href="{{ url('/admin/ownership') }}" class="sidebar-link">
                                 <i class="bi bi-person-badge"></i>

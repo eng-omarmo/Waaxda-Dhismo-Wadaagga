@@ -56,6 +56,13 @@ class ServiceSeeder extends Seeder
                 'icon_color' => 'bg-primary',
                 'icon_class' => 'bi-building-check',
             ],
+            [
+                'name' => 'Engineer License Application',
+                'description' => 'Apply for a professional engineer license. Manual review by engineering board.',
+                'price' => 0.00,
+                'icon_color' => 'bg-primary',
+                'icon_class' => 'bi-person-badge',
+            ],
         ];
 
         $slugMap = [
@@ -65,6 +72,7 @@ class ServiceSeeder extends Seeder
             'Business License Processing' => 'business-license',
             'Property Transfer Services' => 'property-transfer-services',
             'Ownership Certificate' => 'ownership-certificate',
+            'Engineer License Application' => 'engineer-license',
         ];
 
         foreach ($services as $service) {

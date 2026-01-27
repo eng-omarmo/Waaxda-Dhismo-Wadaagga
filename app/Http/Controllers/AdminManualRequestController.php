@@ -233,6 +233,17 @@ class AdminManualRequestController extends Controller
                 ['name' => 'land_size_sqm', 'label' => 'Land Size (sqm)', 'type' => 'number', 'required' => true],
                 ['name' => 'land_location_district', 'label' => 'Location District', 'type' => 'text', 'required' => true],
             ];
+        } elseif ($slug === 'engineer-license') {
+            $title = 'Engineer License – Data Collection';
+            $fields = [
+                ['name' => 'applicant_name', 'label' => 'Applicant Full Name', 'type' => 'text', 'required' => true],
+                ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true],
+                ['name' => 'phone', 'label' => 'Phone', 'type' => 'text', 'required' => true],
+                ['name' => 'national_id', 'label' => 'National ID', 'type' => 'text', 'required' => true],
+                ['name' => 'engineering_field', 'label' => 'Engineering Field', 'type' => 'text', 'required' => true],
+                ['name' => 'university', 'label' => 'University', 'type' => 'text', 'required' => false],
+                ['name' => 'graduation_year', 'label' => 'Graduation Year', 'type' => 'number', 'required' => false],
+            ];
         } elseif ($slug === 'developer-registration' || $slug === 'organization-registration') {
             $title = 'Organization Registration – Data Collection';
             $fields = [
@@ -625,6 +636,26 @@ class AdminManualRequestController extends Controller
                 }
                 $type = ApartmentConstructionPermit::class;
                 $id = (string) $permit->id;
+                break;
+            case 'engineer-license':
+                $license = \App\Models\EngineerLicense::where('email', $manual_request->user_email)
+                    ->orWhere('phone', $manual_request->user_phone)
+                    ->latest()->first();
+                if (! $license) {
+                    $license = \App\Models\EngineerLicense::create([
+                        'applicant_name' => (string) ($values['applicant_name'] ?? $manual_request->user_full_name),
+                        'email' => (string) ($values['email'] ?? $manual_request->user_email),
+                        'phone' => (string) ($values['phone'] ?? $manual_request->user_phone),
+                        'national_id' => (string) ($values['national_id'] ?? $manual_request->user_national_id ?? ''),
+                        'engineering_field' => (string) ($values['engineering_field'] ?? ''),
+                        'university' => (string) ($values['university'] ?? ''),
+                        'graduation_year' => (string) ($values['graduation_year'] ?? ''),
+                        'status' => 'Pending',
+                        'admin_comments' => null,
+                    ]);
+                }
+                $type = \App\Models\EngineerLicense::class;
+                $id = (string) $license->id;
                 break;
         }
 
