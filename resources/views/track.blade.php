@@ -17,7 +17,7 @@
   <header class="hero">
     <div class="container">
       <h1 class="fw-extrabold mb-2">{{ __('Track Your Service') }}</h1>
-      <p class="mb-0">{{ __('Enter your reference ID to see the latest status.') }}</p>
+      <p class="mb-0">{{ __('Track by Reference ID or Phone Number') }}</p>
     </div>
   </header>
 
@@ -58,6 +58,22 @@
                 @endif
               </form>
 
+              <hr class="my-4">
+              <h6 class="mb-3">{{ __('Track by Phone Number') }}</h6>
+              <form method="POST" action="{{ route('track.lookup_phone') }}" novalidate aria-describedby="phoneHelp">
+                @csrf
+                <div class="row g-3 align-items-end">
+                  <div class="col-md-8">
+                    <label for="phone" class="form-label">{{ __('Phone Number') }}</label>
+                    <input id="phone" name="phone" type="tel" class="form-control" placeholder="061XXXXXXX" required value="{{ old('phone') }}" aria-required="true" aria-invalid="{{ $errors->has('phone') ? 'true' : 'false' }}">
+                  </div>
+                  <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary w-100">{{ __('Find My Services') }}</button>
+                  </div>
+                </div>
+                <div id="phoneHelp" class="form-text mt-2">{{ __('We will show all services linked to this phone number.') }}</div>
+              </form>
+
               <div id="results" class="mt-4" aria-live="polite">
                 @if (!empty($data))
                   <div class="border rounded p-3">
@@ -80,6 +96,36 @@
                     @else
                       <div class="alert alert-info" role="alert">
                         {{ __('Provide your registrant email to view full details securely.') }}
+                      </div>
+                    @endif
+                  </div>
+                @endif
+
+                @if (!empty($phoneData))
+                  <div class="border rounded p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">{{ __('Linked Services') }}</h5>
+                      <span class="badge bg-info">{{ __('Phone') }}: {{ $phoneData['phone'] }}</span>
+                    </div>
+                    @if (empty($phoneData['items']))
+                      <p class="text-muted mb-0">{{ __('No services found linked to this phone number.') }}</p>
+                    @else
+                      <div class="list-group">
+                        @foreach ($phoneData['items'] as $item)
+                          <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                              <div class="fw-bold">{{ $item['type'] }} — {{ $item['name'] }}</div>
+                              <div class="small text-muted">
+                                {{ __('Updated') }}: {{ \Illuminate\Support\Carbon::parse($item['updated_at'])->toDateTimeString() }}
+                                · {{ __('Next') }}: {{ $item['next_milestone'] }}
+                              </div>
+                            </div>
+                            <span class="badge bg-secondary">{{ $item['status'] }}</span>
+                          </div>
+                        @endforeach
+                      </div>
+                      <div class="alert alert-light mt-3" role="alert">
+                        <strong>{{ __('Questions?') }}</strong> {{ __('Contact') }}: {{ $phoneData['contact']['email'] }} · {{ $phoneData['contact']['phone'] }}
                       </div>
                     @endif
                   </div>
@@ -123,4 +169,3 @@
   </script>
 </body>
 </html>
-

@@ -88,7 +88,7 @@
                                         <input name="graduation_year" type="number" class="form-control" placeholder="YYYY" min="1900" max="{{ date('Y')+1 }}">
                                     </div>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label">Status</label>
                                     <div>

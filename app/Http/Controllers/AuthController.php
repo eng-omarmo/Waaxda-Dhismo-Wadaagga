@@ -62,7 +62,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $key = 'login:'.$request->ip();
+        $key = 'login:' . $request->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return back()->withErrors(['email' => 'Too many attempts. Please try again later.']);
         }

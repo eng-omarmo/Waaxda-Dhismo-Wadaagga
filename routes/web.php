@@ -77,6 +77,7 @@ Route::get('/services/{slug}', [ServiceController::class, 'show'])->name('servic
 
 Route::get('/track', [ServiceTrackingController::class, 'show'])->name('track.show');
 Route::post('/track', [ServiceTrackingController::class, 'lookup'])->middleware('throttle:15,1')->name('track.lookup');
+Route::post('/track/phone', [ServiceTrackingController::class, 'lookupByPhone'])->middleware('throttle:15,1')->name('track.lookup_phone');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
