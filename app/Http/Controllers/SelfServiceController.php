@@ -107,14 +107,18 @@ class SelfServiceController extends Controller
     public function storeInfo(Request $request)
     {
         $reg = $this->current($request);
+
+        // Single consolidated application form: capture person info, optional project details, and documents
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'national_id' => ['nullable', 'string', 'max:255'],
         ]);
+
         $data = $reg->data ?: [];
         $data['national_id'] = $validated['national_id'] ?? null;
+
         if ($reg->service_slug === 'project-registration' || $reg->service_slug === 'construction-permit-application') {
             $details = $request->validate([
                 'project_name' => ['required', 'string', 'max:255'],
@@ -123,6 +127,7 @@ class SelfServiceController extends Controller
             $data['project_name'] = $details['project_name'];
             $data['location_text'] = $details['location_text'];
         }
+
         $reg->update([
             'full_name' => $validated['full_name'],
             'email' => $validated['email'],
@@ -130,9 +135,12 @@ class SelfServiceController extends Controller
             'data' => $data,
             'step' => 5,
         ]);
+
+        // Handle optional document uploads
         $request->validate([
             'documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:5120'],
         ]);
+
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
                 $path = $file->store('self_docs', 'public');
@@ -144,11 +152,9 @@ class SelfServiceController extends Controller
                 ]);
             }
         }
-        if ($request->filled('payment_method')) {
-            return $this->processPay($request);
-        }
 
-        return redirect()->route('portal.info');
+        // After submitting the single application form, go directly to payment step
+        return redirect()->route('portal.pay');
     }
 
     public function details(Request $request)
@@ -443,23 +449,16 @@ class SelfServiceController extends Controller
         $meta['receipt_url'] = $receiptUrl;
         $payment->metadata = $meta;
         $payment->save();
-        $next = route('portal.details');
-        if ($reg) {
-            $map = [
-                'project-registration' => 'services.project-registration',
-                'construction-permit-application' => 'services.construction-permit',
-                'developer-registration' => 'services.developer-registration',
-                'business-license' => 'services.business-license',
-                'ownership-certificate' => 'services.ownership-certificate',
-                'ownership-transfer' => 'services.ownership-transfer',
-                'property-transfer-services' => 'services.ownership-transfer',
-            ];
-            if (isset($map[$reg->service_slug])) {
-                $next = route($map[$reg->service_slug]);
-            }
-        }
 
-        return redirect($next)->with(['success' => 'Payment successful', 'receipt_url' => $receiptUrl]);
+        // Show a single success page instead of redirecting into another form
+        $service = $reg ? Service::find($reg->service_id) : null;
+
+        return response()->view('portal.success', [
+            'reg' => $reg,
+            'payment' => $payment,
+            'service' => $service,
+            'receiptUrl' => $receiptUrl,
+        ])->withHeaders($this->securityHeaders());
     }
 
     public function callbackFailure(Request $request)

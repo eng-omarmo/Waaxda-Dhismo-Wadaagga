@@ -208,7 +208,6 @@ class AdminBusinessLicenseController extends Controller
 
     public function displayIssuePage()
     {
-
         return view('admin.pages.new-business-licence');
     }
 
