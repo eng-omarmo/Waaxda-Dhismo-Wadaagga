@@ -201,6 +201,36 @@ class SelfRegistrationController extends Controller
         return view('receipt-online', ['payment' => $payment, 'registration' => $reg]);
     }
 
+    public function verifyReceiptOnline(Request $request, OnlinePayment $payment)
+    {
+        $sig = (string) $request->query('sig', '');
+        $expected = hash_hmac('sha256', (string) $payment->id, config('app.key'));
+        if ($sig === '' || ! hash_equals($expected, $sig)) {
+            return response()->view('payment.failure', [
+                'title' => 'Receipt Verification Failed',
+                'message' => 'The QR code or verification signature is invalid.',
+                'errors' => ['invalid_signature'],
+                'homeUrl' => route('landing.page.index'),
+            ], 403);
+        }
+
+        $reg = PendingRegistration::find($payment->pending_registration_id);
+        if (! $reg) {
+            return response()->view('payment.failure', [
+                'title' => 'Receipt Verification Failed',
+                'message' => 'We could not locate the related registration record.',
+                'errors' => ['registration_missing'],
+                'homeUrl' => route('landing.page.index'),
+            ], 404);
+        }
+
+        return view('receipt-online', [
+            'payment' => $payment,
+            'registration' => $reg,
+            'verified' => true,
+        ]);
+    }
+
     private function current(Request $request): PendingRegistration
     {
         $id = $request->session()->get('registration_id');

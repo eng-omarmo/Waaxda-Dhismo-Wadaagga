@@ -37,13 +37,15 @@
         .navbar {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 0.8rem 0;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.96);
         }
 
         /* Hero with sharper focus */
         .hero-gradient {
             background: linear-gradient(135deg, var(--mu-blue-dark) 0%, var(--mu-blue) 100%);
             color: white;
-            padding: 120px 0;
+            padding: 120px 0 100px;
             position: relative;
             overflow: hidden;
         }
@@ -173,6 +175,17 @@
             letter-spacing: 1px;
             font-weight: 700;
         }
+
+        /* Responsive tweaks */
+        @media (max-width: 768px) {
+            .hero-gradient {
+                padding: 80px 0 60px;
+            }
+
+            .navbar .navbar-brand img {
+                height: 40px;
+            }
+        }
     </style>
 </head>
 
@@ -226,30 +239,36 @@
 
             <div class="row g-4">
                 @foreach($services as $service)
-                <div class="col-xl-3 col-lg-3 col-md-6">
-                    <a href="{{ route('portal.start', ['serviceId' => $service->id]) }}" class="text-decoration-none h-100 d-block">
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route('portal.start', ['serviceId' => $service->id]) }}"
+                       class="text-decoration-none h-100 d-block"
+                       aria-label="Apply for {{ $service->name }}">
                         <div class="card h-100 service-card border-0 shadow-sm p-4">
 
-                            <div class="icon-box shadow-sm mb-3 {{ $service->getIconColor() }} text-white">
-                                <i class="bi {{ $service->icon_class ?? 'bi-gear' }}"></i>
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="icon-box shadow-sm {{ $service->getIconColor() }} text-white">
+                                    <i class="bi {{ $service->icon_class ?? 'bi-gear' }}"></i>
+                                </div>
+                                @if(in_array($service->slug, ['project-registration','construction-permit-application','business-license']))
+                                    <span class="badge bg-warning text-dark small">Most requested</span>
+                                @endif
                             </div>
 
-                            <span class="badge bg-light text-primary mb-2 w-50">Step {{ $loop->iteration }}</span>
+                            <h6 class="fw-bold text-dark mb-1">{{ $service->name }}</h6>
+                            <p class="text-muted small mb-2">{{ $service->description }}</p>
 
-                            <h6 class="fw-bold text-dark">{{ $service->name }}</h6>
-                            <p class="text-muted small mb-0">{{ $service->description }}</p>
-
-                            @if($service->price > 0)
-                            <div class="mt-3 pt-3 border-top">
-                                <span class="fw-bold text-primary">${{ number_format($service->price, 2) }}</span>
+                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                                <span class="badge bg-light text-primary small">Online application</span>
+                                @if($service->price > 0)
+                                    <span class="fw-bold text-primary small">${{ number_format($service->price, 2) }}</span>
+                                @else
+                                    <span class="text-muted small">Free</span>
+                                @endif
                             </div>
-                            @endif
                         </div>
                     </a>
                 </div>
                 @endforeach
-
-
             </div>
         </section>
 

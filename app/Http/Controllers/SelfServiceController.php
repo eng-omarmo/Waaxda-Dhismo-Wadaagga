@@ -349,6 +349,39 @@ class SelfServiceController extends Controller
         return view('portal.receipt-public', compact('reg', 'payment', 'service'));
     }
 
+    public function verifyPortalReceipt(Request $request, OnlinePayment $payment)
+    {
+        $sig = (string) $request->query('sig', '');
+        $expected = hash_hmac('sha256', (string) $payment->id, config('app.key'));
+        if ($sig === '' || ! hash_equals($expected, $sig)) {
+            return response()->view('payment.failure', [
+                'title' => 'Receipt Verification Failed',
+                'message' => 'The QR code or verification signature is invalid.',
+                'errors' => ['invalid_signature'],
+                'homeUrl' => route('landing.page.index'),
+            ], 403)->withHeaders($this->securityHeaders());
+        }
+
+        $reg = PendingRegistration::find($payment->pending_registration_id);
+        if (! $reg) {
+            return response()->view('payment.failure', [
+                'title' => 'Receipt Verification Failed',
+                'message' => 'We could not locate the related service application.',
+                'errors' => ['registration_missing'],
+                'homeUrl' => route('landing.page.index'),
+            ], 404)->withHeaders($this->securityHeaders());
+        }
+
+        $service = Service::find($reg->service_id);
+
+        return response()->view('portal.receipt-public', [
+            'reg' => $reg,
+            'payment' => $payment,
+            'service' => $service,
+            'verified' => true,
+        ])->withHeaders($this->securityHeaders());
+    }
+
     public function resume(Request $request, string $token)
     {
         $reg = PendingRegistration::where('resume_token', $token)->firstOrFail();
@@ -419,6 +452,10 @@ class SelfServiceController extends Controller
             'response_code' => $code,
             'payload' => $request->all(),
         ]);
+        // Always store the gateway's transactionId if present
+        if ($transactionId !== '' && $payment->transaction_id !== $transactionId) {
+            $payment->transaction_id = $transactionId;
+        }
         $payment->status = $ok ? 'succeeded' : 'failed';
         $payment->verified_at = now();
         $meta = (array) $payment->metadata;

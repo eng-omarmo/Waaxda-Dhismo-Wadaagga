@@ -27,6 +27,7 @@ Route::get('/register/step2', [\App\Http\Controllers\SelfRegistrationController:
 Route::post('/register/pay', [\App\Http\Controllers\SelfRegistrationController::class, 'processPayment'])->name('register.pay');
 Route::get('/register/resume/{token}', [\App\Http\Controllers\SelfRegistrationController::class, 'resume'])->name('register.resume');
 Route::get('/receipt/online/{payment}', [\App\Http\Controllers\SelfRegistrationController::class, 'publicReceiptOnline'])->middleware('signed')->name('receipt.online.show');
+Route::get('/receipt/online/verify/{payment}', [\App\Http\Controllers\SelfRegistrationController::class, 'verifyReceiptOnline'])->name('receipt.online.verify');
 
 Route::get('/portal', [\App\Http\Controllers\SelfServiceController::class, 'start'])->name('portal.start');
 Route::post('/portal/service', [\App\Http\Controllers\SelfServiceController::class, 'storeService'])->name('portal.service.store');
@@ -41,10 +42,11 @@ Route::post('/portal/pay', [\App\Http\Controllers\SelfServiceController::class, 
 Route::get('/portal/receipt', [\App\Http\Controllers\SelfServiceController::class, 'receipt'])->name('portal.receipt');
 Route::get('/portal/resume/{token}', [\App\Http\Controllers\SelfServiceController::class, 'resume'])->name('portal.resume');
 Route::get('/portal/receipt/{payment}', [\App\Http\Controllers\SelfServiceController::class, 'publicReceipt'])->middleware('signed')->name('portal.receipt.public');
-Route::match(['GET','POST'], '/portal/callback/success', [\App\Http\Controllers\SelfServiceController::class, 'callbackSuccess'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('portal.success');
-Route::match(['GET','POST'], '/portal/callback/failure', [\App\Http\Controllers\SelfServiceController::class, 'callbackFailure'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('portal.failure');
-Route::match(['GET','POST'], '/payment/callback/success', [\App\Http\Controllers\SelfServiceController::class, 'callbackSuccess'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('payment.callback.success');
-Route::match(['GET','POST'], '/payment/callback/failure', [\App\Http\Controllers\SelfServiceController::class, 'callbackFailure'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->name('payment.callback.failure');
+Route::get('/portal/receipt/verify/{payment}', [\App\Http\Controllers\SelfServiceController::class, 'verifyPortalReceipt'])->name('portal.receipt.verify');
+Route::match(['GET','POST'], '/portal/callback/success', [\App\Http\Controllers\SelfServiceController::class, 'callbackSuccess'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('portal.success');
+Route::match(['GET','POST'], '/portal/callback/failure', [\App\Http\Controllers\SelfServiceController::class, 'callbackFailure'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('portal.failure');
+Route::match(['GET','POST'], '/payment/callback/success', [\App\Http\Controllers\SelfServiceController::class, 'callbackSuccess'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('payment.callback.success');
+Route::match(['GET','POST'], '/payment/callback/failure', [\App\Http\Controllers\SelfServiceController::class, 'callbackFailure'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('payment.callback.failure');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.attempt');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');

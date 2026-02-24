@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.css') }}">
   </head>
   <body class="bg-light">
+    <x-public-navbar />
     <div class="container py-5">
       <div class="row justify-content-center">
         <div class="col-lg-6">
