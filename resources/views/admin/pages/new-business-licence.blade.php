@@ -39,8 +39,18 @@
                                 <input type="text" class="form-control bg-light border-0 py-2" value="Auto-generated ID" readonly>
                             </div>
                             <div class="col-md-6 mb-4">
-                                <label class="form-label fw-bold small text-uppercase"><i class="bi bi-link-45deg me-1"></i>Project UUID Reference</label>
-                                <input name="project_id" type="text" class="form-control py-2" placeholder="xxxxxxxx-xxxx-xxxx..." value="{{ old('project_id') }}">
+                                <label class="form-label fw-bold small text-uppercase"><i class="bi bi-link-45deg me-1"></i>Project Reference</label>
+                                <select name="project_id" class="form-select py-2 @error('project_id') is-invalid @enderror">
+                                    <option value="">Select an existing project (Optional)</option>
+                                    @foreach($projects as $project)
+                                        <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                            {{ $project->project_name }} ({{ $project->id }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('project_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApartmentConstructionPermit;
+use App\Models\ManualOperationLog;
 use App\Models\OnlinePayment;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -118,6 +120,16 @@ class ApartmentConstructionPermitController extends Controller
                 'request_details' => $requestDetails,
             ]
         );
+
+        if (Auth::check()) {
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'admin_create_construction_permit_request',
+                'target_type' => 'ServiceRequest',
+                'target_id' => (string) $req->id,
+                'details' => ['applicant_name' => $validated['applicant_full_name']],
+            ]);
+        }
 
         if (! $req->wasRecentlyCreated) {
             $existingDetails = (array) $req->request_details;

@@ -70,9 +70,19 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Project ID</label>
-                        <input type="text" class="form-control" name="project_id" id="projectId" placeholder="Paste project ID" required>
-                        <div class="form-text">Project ID is required to bind certificate.</div>
+                        <label class="form-label">Project Reference</label>
+                        <select name="project_id" id="projectId" class="form-select @error('project_id') is-invalid @enderror" required>
+                            <option value="">Select a project</option>
+                            @foreach($projects as $project)
+                                <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                    {{ $project->project_name }} ({{ $project->id }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Select project to bind certificate.</div>
+                        @error('project_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="mb-3">

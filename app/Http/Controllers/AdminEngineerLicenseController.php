@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EngineerLicense;
+use App\Models\ManualOperationLog;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
@@ -29,6 +30,15 @@ class AdminEngineerLicenseController extends Controller
             'approved_at' => now(),
             'admin_comments' => $request->input('admin_comments'),
         ]);
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'approve_engineer_license',
+            'target_type' => 'EngineerLicense',
+            'target_id' => (string) $license->id,
+            'details' => ['applicant_name' => $license->applicant_name],
+        ]);
+
         $service = Service::where('slug', 'engineer-license')->first();
         if ($service) {
             $statusForRequest = 'verified';
@@ -68,6 +78,15 @@ class AdminEngineerLicenseController extends Controller
             'approved_at' => now(),
             'admin_comments' => $request->input('admin_comments'),
         ]);
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'reject_engineer_license',
+            'target_type' => 'EngineerLicense',
+            'target_id' => (string) $license->id,
+            'details' => ['applicant_name' => $license->applicant_name],
+        ]);
+
         $service = Service::where('slug', 'engineer-license')->first();
         if ($service) {
             $statusForRequest = 'rejected';

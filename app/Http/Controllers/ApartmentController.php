@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Apartment;
+use App\Models\ManualOperationLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class ApartmentController extends Controller
@@ -54,6 +56,14 @@ class ApartmentController extends Controller
             'name', 'address_city',
             'contact_name', 'contact_phone', 'contact_email', 'notes',
         ]));
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'admin_create_apartment',
+            'target_type' => 'Apartment',
+            'target_id' => (string) $apartment->id,
+            'details' => ['name' => $apartment->name],
+        ]);
 
         if ($request->filled('owner_national_id')) {
             $owner = \App\Models\OwnerProfile::firstOrCreate(

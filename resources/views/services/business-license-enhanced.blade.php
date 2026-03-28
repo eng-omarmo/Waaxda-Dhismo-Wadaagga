@@ -280,24 +280,26 @@
 
                 <div class="col-md-12 field-group">
                   <label for="project_id" class="form-label">
-                    Project ID (Optional)
+                    Project Reference (Optional)
                     <i class="bi bi-info-circle help-icon" 
                        data-bs-toggle="tooltip" 
                        data-bs-placement="top"
-                       title="Link this license to an existing project by entering the project UUID"></i>
+                       title="Link this license to an existing project by selecting it from the list"></i>
                   </label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
+                  <select 
+                    class="form-select" 
                     id="project_id" 
                     name="project_id" 
-                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                    value="{{ old('project_id', '') }}"
-                    pattern="^[0-9a-fA-F\-]{36}$"
-                    aria-describedby="project_id_help project_id_error"
-                    autocomplete="off">
+                    aria-describedby="project_id_help project_id_error">
+                    <option value="">Select an existing project (Optional)</option>
+                    @foreach($projects as $project)
+                      <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                        {{ $project->project_name }} ({{ $project->id }})
+                      </option>
+                    @endforeach
+                  </select>
                   <div class="form-text-help" id="project_id_help">
-                    Optional: Enter project UUID if this license is linked to a specific project
+                    Optional: Select a project if this license is linked to a specific project
                   </div>
                   <div class="form-error" id="project_id_error" role="alert"></div>
                 </div>

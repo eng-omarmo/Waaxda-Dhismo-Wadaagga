@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\EngineerLicense;
+use App\Models\ManualOperationLog;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class EngineerLicenseController extends Controller
 {
@@ -37,6 +39,16 @@ class EngineerLicenseController extends Controller
         ]);
 
         $license = EngineerLicense::create($data);
+
+        if (Auth::check()) {
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'admin_create_engineer_license',
+                'target_type' => 'EngineerLicense',
+                'target_id' => (string) $license->id,
+                'details' => ['applicant_name' => $license->applicant_name],
+            ]);
+        }
 
         $service = Service::where('slug', 'engineer-license')->first();
         if ($service) {

@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessLicense;
+use App\Models\ManualOperationLog;
+use App\Models\Project;
+use App\Models\Service;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -11,7 +16,8 @@ class BusinessLicenseController extends Controller
 {
     public function show()
     {
-        return view('services.business-license-enhanced');
+        $projects = Project::all();
+        return view('services.business-license-enhanced', compact('projects'));
     }
 
     public function store(Request $request)
@@ -23,7 +29,7 @@ class BusinessLicenseController extends Controller
             'registrant_name' => ['required', 'string', 'max:255'],
             'registrant_email' => ['required', 'email', 'max:255'],
             'registrant_phone' => ['required', 'string', 'max:50'],
-            'documents.*' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ]);
 
         $key = 'license-register:'.$request->ip();
@@ -39,6 +45,35 @@ class BusinessLicenseController extends Controller
             'registrant_email',
             'registrant_phone',
         ]));
+
+        if (Auth::check()) {
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'admin_create_business_license',
+                'target_type' => 'BusinessLicense',
+                'target_id' => (string) $license->id,
+                'details' => ['company_name' => $license->company_name],
+            ]);
+        }
+
+        $service = Service::where('slug', 'business-license')->first();
+        if ($service) {
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => Auth::id(),
+                'user_full_name' => $license->registrant_name,
+                'user_email' => $license->registrant_email,
+                'user_phone' => $license->registrant_phone,
+                'user_national_id' => null,
+                'request_details' => [
+                    'company_name' => $license->company_name,
+                    'license_type' => $license->license_type,
+                    'project_id' => $license->project_id,
+                    'business_license_id' => $license->id,
+                ],
+                'status' => 'pending',
+            ]);
+        }
 
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {

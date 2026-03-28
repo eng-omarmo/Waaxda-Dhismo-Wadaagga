@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Certificate;
+use App\Models\ManualOperationLog;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Service;
@@ -71,6 +72,14 @@ class AdminProjectController extends Controller
             'registrant_name' => $request->registrant_name ?: (trim(($user->first_name ?? '').' '.($user->last_name ?? '')) ?: 'Administrator'),
             'registrant_phone' => $request->registrant_phone ?: ($user->contact_phone ?? ''),
             'registrant_email' => $request->registrant_email ?: ($user->email ?? ''),
+        ]);
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'admin_create_project',
+            'target_type' => 'Project',
+            'target_id' => (string) $project->id,
+            'details' => ['project_name' => $project->project_name],
         ]);
 
         $service = Service::where('slug', 'project-registration')->first();

@@ -33,8 +33,9 @@ class CertificateController extends Controller
     public function create()
     {
         $services = Service::orderBy('name')->get();
+        $projects = Project::orderBy('project_name')->get();
 
-        return view('admin.certificates.create', compact('services'));
+        return view('admin.certificates.create', compact('services', 'projects'));
     }
 
     public function store(Request $request)

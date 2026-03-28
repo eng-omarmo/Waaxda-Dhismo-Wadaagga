@@ -100,8 +100,18 @@
                             <input name="company_name" class="form-control" value="{{ old('company_name',$license->company_name) }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Project ID</label>
-                            <input name="project_id" class="form-control" value="{{ old('project_id',$license->project_id) }}">
+                            <label class="form-label">Project Reference</label>
+                            <select name="project_id" class="form-select @error('project_id') is-invalid @enderror">
+                                <option value="">No Project Linked</option>
+                                @foreach($projects as $project)
+                                    <option value="{{ $project->id }}" {{ (old('project_id', $license->project_id) == $project->id) ? 'selected' : '' }}>
+                                        {{ $project->project_name }} ({{ $project->id }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('project_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">License Type</label>

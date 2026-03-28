@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ManualOperationLog;
 use App\Models\Organization;
 use App\Models\OrganizationChange;
 use App\Models\OrganizationDocument;
@@ -84,6 +85,14 @@ class AdminOrganizationController extends Controller
             'contact_email',
             'status',
         ]));
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'create_organization',
+            'target_type' => 'Organization',
+            'target_id' => (string) $org->id,
+            'details' => ['name' => $org->name, 'type' => $org->type],
+        ]);
 
         $service = Service::whereIn('slug', ['developer-registration', 'organization-registration'])->first();
         if ($service) {

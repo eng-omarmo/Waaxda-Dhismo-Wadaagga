@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessLicense;
 use App\Models\BusinessLicenseChange;
+use App\Models\ManualOperationLog;
+use App\Models\Project;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
@@ -53,8 +55,9 @@ class AdminBusinessLicenseController extends Controller
         $verificationStatuses = ['unverified', 'verified'];
         $previousChange = BusinessLicenseChange::where('license_id', $license->id)->latest()->first();
         $history = BusinessLicenseChange::where('license_id', $license->id)->orderByDesc('created_at')->get();
+        $projects = Project::orderBy('project_name')->get();
 
-        return view('admin.pages.license-edit', compact('license', 'licenses', 'statuses', 'verificationStatuses', 'previousChange', 'history'));
+        return view('admin.pages.license-edit', compact('license', 'licenses', 'statuses', 'verificationStatuses', 'previousChange', 'history', 'projects'));
     }
 
     public function save(Request $request, BusinessLicense $license)
@@ -96,6 +99,14 @@ class AdminBusinessLicenseController extends Controller
         $license->registrant_email = $request->registrant_email;
         $license->registrant_phone = $request->registrant_phone;
         $license->save();
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'update_business_license',
+            'target_type' => 'BusinessLicense',
+            'target_id' => (string) $license->id,
+            'details' => ['changes' => $license->getChanges()],
+        ]);
 
         $service = Service::where('slug', 'business-license')->first();
         if ($service) {
@@ -208,7 +219,8 @@ class AdminBusinessLicenseController extends Controller
 
     public function displayIssuePage()
     {
-        return view('admin.pages.new-business-licence');
+        $projects = Project::orderBy('project_name')->get();
+        return view('admin.pages.new-business-licence', compact('projects'));
     }
 
     public function reject(Request $request, BusinessLicense $license)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Apartment;
 use App\Models\Certificate;
+use App\Models\ManualOperationLog;
 use App\Models\OwnershipClaim;
 use App\Models\OwnershipClaimChange;
 use App\Models\Service;
@@ -64,6 +65,14 @@ class AdminOwnershipController extends Controller
             'last_modified_by_admin_id' => Auth::id(),
             'evidence_documents' => $docs,
         ]));
+
+        ManualOperationLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'admin_create_ownership_claim',
+            'target_type' => 'OwnershipClaim',
+            'target_id' => (string) $claim->id,
+            'details' => ['claimant_name' => $claim->claimant_name],
+        ]);
 
         return redirect()->route('admin.ownership.index', ['claim' => $claim->id])->with('success', 'Claim created');
     }
