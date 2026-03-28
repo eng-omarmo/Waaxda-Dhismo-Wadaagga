@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OnlinePayment;
+use App\Models\PaymentVerification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,11 +68,36 @@ class AdminPaymentController extends Controller
         $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
         $payments = $query->paginate($perPage)->withQueryString();
 
+        // Manual / portal service payments live in payment_verifications (not online_payments).
+        $servicePaymentsQuery = PaymentVerification::with(['request.service', 'verifier']);
+        if ($q = $request->string('q')->toString()) {
+            $servicePaymentsQuery->whereHas('request', function ($sub) use ($q) {
+                $sub->where('user_full_name', 'like', "%$q%")
+                    ->orWhere('user_email', 'like', "%$q%")
+                    ->orWhere('user_phone', 'like', "%$q%");
+            });
+        }
+        if ($from = $request->string('from')->toString()) {
+            $servicePaymentsQuery->whereDate('payment_date', '>=', $from);
+        }
+        if ($to = $request->string('to')->toString()) {
+            $servicePaymentsQuery->whereDate('payment_date', '<=', $to);
+        }
+        $servicePerPage = min(max((int) $request->query('service_per_page', 10), 1), 100);
+        $servicePayments = $servicePaymentsQuery
+            ->orderByDesc('created_at')
+            ->paginate($servicePerPage, ['*'], 'service_page')
+            ->withQueryString();
+
+        $servicePaymentsVerifiedTotal = PaymentVerification::where('status', 'verified')->sum('amount');
+
         $statuses = ['initiated', 'succeeded', 'failed'];
         $methods = OnlinePayment::distinct()->pluck('payment_method')->filter()->values();
 
         return view('admin.pages.payments', compact(
             'payments',
+            'servicePayments',
+            'servicePaymentsVerifiedTotal',
             'statuses',
             'methods',
             'totalCollected',

@@ -3,11 +3,23 @@
 
 @section('content')
 <div class="page-heading">
+    @if (session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
     <div class="page-title">
         <div class="row">
             <div class="col-12 col-md-6 order-md-1 order-last">
                 <h3>Payment Records</h3>
-                <p class="text-subtitle text-muted">Comprehensive list of all collected payments.</p>
+                <p class="text-subtitle text-muted">Includes online registration payments and verified manual service payments (two separate ledgers).</p>
             </div>
             <div class="col-12 col-md-6 order-md-2 order-first">
                 <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
@@ -56,7 +68,24 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-lg-6 col-md-12">
+        <div class="col-6 col-lg-3 col-md-6">
+            <div class="card">
+                <div class="card-body px-4 py-4-5">
+                    <div class="row">
+                        <div class="col-md-4 col-lg-12 col-xl-4 col-xxl-5 d-flex justify-content-start">
+                            <div class="stats-icon green mb-2">
+                                <i class="bi bi-receipt-cutoff"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-8 col-lg-12 col-xl-8 col-xxl-7">
+                            <h6 class="text-muted font-semibold">Services (verified)</h6>
+                            <h6 class="font-extrabold mb-0">${{ number_format($servicePaymentsVerifiedTotal, 2) }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-3 col-md-12">
             <div class="card">
                 <div class="card-body px-4 py-4-5">
                     <h6 class="text-muted font-semibold mb-3">Method Breakdown (Successful)</h6>
@@ -80,7 +109,10 @@
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <h4 class="card-title">Payment History</h4>
+                    <div>
+                        <h4 class="card-title mb-0">Online registration payments</h4>
+                        <p class="text-muted small mb-0">Self-registration / portal card payments tied to a pending registration.</p>
+                    </div>
                     <div class="btn-group">
                         <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-file-earmark-spreadsheet"></i> CSV
@@ -185,6 +217,73 @@
 
                 <div class="mt-4 d-flex justify-content-center">
                     {{ $payments->links('components.pagination') }}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Manual service payments</h4>
+                <p class="text-muted small mb-0 mt-1">Recorded when you verify payment on a <a href="{{ route('admin.manual-requests.index') }}">manual service request</a>. These are stored separately from online registration payments above.</p>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">The search and date filters at the top apply to both tables (service rows match customer name, email, or phone; dates use payment date).</p>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Service &amp; customer</th>
+                                <th>Amount</th>
+                                <th>Payment date</th>
+                                <th>Status</th>
+                                <th>Recorded</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($servicePayments as $sp)
+                                @php
+                                    $sr = $sp->request;
+                                    $badgeClass = match($sp->status) {
+                                        'verified' => 'bg-success',
+                                        'discrepancy' => 'bg-warning',
+                                        'rejected' => 'bg-danger',
+                                        default => 'bg-secondary'
+                                    };
+                                @endphp
+                                <tr>
+                                    <td>{{ $sp->id }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ $sr?->service?->name ?? '—' }}</div>
+                                        <div class="small text-muted">{{ $sr?->user_full_name }} · {{ $sr?->user_email }}</div>
+                                        <div class="small"><span class="text-muted">Request #{{ $sr?->id }}</span></div>
+                                    </td>
+                                    <td>${{ number_format($sp->amount, 2) }}</td>
+                                    <td>{{ $sp->payment_date?->format('Y-m-d') }}</td>
+                                    <td><span class="badge {{ $badgeClass }}">{{ ucfirst($sp->status) }}</span></td>
+                                    <td>{{ $sp->created_at->format('Y-m-d H:i') }}</td>
+                                    <td class="text-nowrap">
+                                        @if($sr && $sp->status === 'verified')
+                                            <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.manual-requests.receipt', [$sr, $sp]) }}" target="_blank">Receipt</a>
+                                        @endif
+                                        @if($sr)
+                                            <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.manual-requests.show', $sr) }}">Open request</a>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">No service payments yet. Verify a payment on a manual request to see it here.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 d-flex justify-content-center">
+                    {{ $servicePayments->links('components.pagination') }}
                 </div>
             </div>
         </div>
