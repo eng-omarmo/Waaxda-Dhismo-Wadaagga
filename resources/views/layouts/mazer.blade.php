@@ -99,7 +99,14 @@
                             </a>
                         </li>
 
-                        <li class="sidebar-item has-sub {{ request()->is('admin/ownership') ? 'active' : '' }}">
+                        <li class="sidebar-item {{ request()->is('admin/payments*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.payments.index') }}" class="sidebar-link">
+                                <i class="bi bi-cash-stack"></i>
+                                <span>Payments</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-item has-sub {{ request()->is('admin/land-parcels*') || request()->is('admin/land-verifications*') ? 'active' : '' }}">
                             <a href="{{ url('/admin/ownership') }}" class="sidebar-link">
                                 <i class="bi bi-person-badge"></i>
                                 <span>Land Ownership Verification</span>

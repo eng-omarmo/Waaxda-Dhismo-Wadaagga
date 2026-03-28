@@ -2,6 +2,11 @@
 @section('title','Engineer Licenses')
 @section('page-heading','Professional Engineer Licenses')
 @section('content')
+
+<div class="mb-3 d-flex justify-content-end">
+  <a href="{{ route('admin.engineer-licenses.create') }}" class="btn btn-primary">Issue New License</a>
+</div>
+
 @if (session('success'))
   <div class="alert alert-success" role="alert">{{ session('success') }}</div>
 @endif

@@ -139,6 +139,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Engineer Licenses
     Route::get('/engineer-licenses', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'index'])->name('engineer-licenses.index');
+    Route::get('/engineer-licenses/create', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'create'])->name('engineer-licenses.create');
+    Route::post('/engineer-licenses', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'store'])->name('engineer-licenses.store');
     Route::get('/engineer-licenses/{license}', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'show'])->name('engineer-licenses.show');
     Route::post('/engineer-licenses/{license}/approve', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'approve'])->name('engineer-licenses.approve');
     Route::post('/engineer-licenses/{license}/reject', [\App\Http\Controllers\AdminEngineerLicenseController::class, 'reject'])->name('engineer-licenses.reject');
@@ -187,6 +189,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/certificates/templates/{service}', [\App\Http\Controllers\CertificateController::class, 'template'])->name('certificates.template');
     Route::get('/certificates/{certificate}/download', [\App\Http\Controllers\CertificateController::class, 'download'])->name('certificates.download');
 
+    Route::get('/payments', [\App\Http\Controllers\AdminPaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/sync', function () {
         $updated = \App\Models\OnlinePayment::where('status', 'initiated')->update([
             'status' => 'completed',
