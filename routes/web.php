@@ -179,7 +179,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::view('/inspections', 'admin.pages.inspections')->name('inspections');
     Route::view('/audit', 'admin.pages.audit')->name('audit');
     Route::view('/roles', 'admin.pages.roles')->name('roles');
-    Route::view('/reports', 'admin.pages.reports')->name('reports');
+    Route::get('/reports', [\App\Http\Controllers\AdminReportsController::class, 'index'])->name('reports');
 
     Route::get('/certificates', [\App\Http\Controllers\CertificateController::class, 'index'])->name('certificates.index');
     Route::get('/certificates/create', [\App\Http\Controllers\CertificateController::class, 'create'])->name('certificates.create');

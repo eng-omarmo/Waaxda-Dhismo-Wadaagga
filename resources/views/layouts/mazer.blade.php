@@ -183,9 +183,9 @@
                                 <span>Reports &amp; Analytics</span>
                             </a>
                             <ul class="submenu">
-                                <li class="submenu-item"><a href="{{ url('/admin/reports') }}#projects">Project Reports</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/reports') }}#permits">Permit &amp; License Statistics</a></li>
-                                <li class="submenu-item"><a href="{{ url('/admin/reports') }}#ownership">Ownership &amp; Transfer Trends</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.reports') }}#overview">Overview &amp; KPIs</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.reports') }}#services">Service pipeline</a></li>
+                                <li class="submenu-item"><a href="{{ route('admin.reports') }}#payments">Revenue by service</a></li>
                             </ul>
                         </li>
 
