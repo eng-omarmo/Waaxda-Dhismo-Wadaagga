@@ -74,6 +74,23 @@ class AdminOwnershipController extends Controller
             'details' => ['claimant_name' => $claim->claimant_name],
         ]);
 
+        $service = Service::where('slug', 'ownership-certificate')->first();
+        if ($service) {
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => Auth::id(),
+                'user_full_name' => $claim->claimant_name,
+                'user_email' => $claim->claimant_email,
+                'user_phone' => $claim->claimant_phone,
+                'user_national_id' => $claim->claimant_national_id,
+                'request_details' => [
+                    'apartment_id' => $claim->apartment_id,
+                    'ownership_claim_id' => $claim->id,
+                ],
+                'status' => 'pending',
+            ]);
+        }
+
         return redirect()->route('admin.ownership.index', ['claim' => $claim->id])->with('success', 'Claim created');
     }
 

@@ -78,7 +78,7 @@ class AdminManualRequestController extends Controller
         $details = (array) $sr->request_details;
         $details['form_schema'] = $schema;
         $details['form_status'] = 'open';
-        $details['form_values'] = [];
+        $details['form_values'] = $this->prepopulateFormValues($service, $sr);
         $details['form_audit'] = [];
         $sr->request_details = $details;
         $sr->save();
@@ -121,6 +121,14 @@ class AdminManualRequestController extends Controller
             $manual_request->save();
         }
         $values = (array) ($details['form_values'] ?? []);
+        if (empty($values)) {
+            $values = $this->prepopulateFormValues($manual_request->service, $manual_request);
+            if (! empty($values)) {
+                $details['form_values'] = $values;
+                $manual_request->request_details = $details;
+                $manual_request->save();
+            }
+        }
 
         return view('admin.manual.requests.form', [
             'request' => $manual_request,
@@ -199,6 +207,90 @@ class AdminManualRequestController extends Controller
         }
 
         return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Form submitted and linked to request');
+    }
+
+    private function prepopulateFormValues(?Service $service, ServiceRequest $sr): array
+    {
+        if (! $service) {
+            return [];
+        }
+
+        $values = [];
+        $email = $sr->user_email;
+        $phone = $sr->user_phone;
+
+        switch ($service->slug) {
+            case 'project-registration':
+                $proj = Project::where('registrant_email', $email)
+                    ->orWhere('registrant_phone', $phone)
+                    ->latest()->first();
+                if ($proj) {
+                    $values = [
+                        'project_name' => $proj->project_name,
+                        'location_text' => $proj->location_text,
+                        'developer_name' => optional($proj->developer)->name,
+                    ];
+                }
+                break;
+            case 'business-license':
+                $bl = BusinessLicense::where('registrant_email', $email)
+                    ->orWhere('registrant_phone', $phone)
+                    ->latest()->first();
+                if ($bl) {
+                    $values = [
+                        'company_name' => $bl->company_name,
+                        'license_type' => $bl->license_type,
+                        'registrant_email' => $bl->registrant_email,
+                        'registrant_phone' => $bl->registrant_phone,
+                    ];
+                }
+                break;
+            case 'engineer-license':
+                $el = EngineerLicense::where('email', $email)
+                    ->orWhere('phone', $phone)
+                    ->latest()->first();
+                if ($el) {
+                    $values = [
+                        'applicant_name' => $el->applicant_name,
+                        'email' => $el->email,
+                        'phone' => $el->phone,
+                        'national_id' => $el->national_id,
+                        'engineering_field' => $el->engineering_field,
+                        'university' => $el->university,
+                        'graduation_year' => $el->graduation_year,
+                    ];
+                }
+                break;
+            case 'developer-registration':
+            case 'organization-registration':
+                $org = Organization::where('contact_email', $email)
+                    ->orWhere('contact_phone', $phone)
+                    ->latest()->first();
+                if ($org) {
+                    $values = [
+                        'organization_name' => $org->name,
+                        'registration_number' => $org->registration_number,
+                        'contact_email' => $org->contact_email,
+                        'contact_phone' => $org->contact_phone,
+                    ];
+                }
+                break;
+            case 'construction-permit-application':
+            case 'construction-permit':
+                $permit = ApartmentConstructionPermit::where('applicant_name', $sr->user_full_name)
+                    ->orWhere('national_id_or_company_registration', $sr->user_national_id)
+                    ->latest()->first();
+                if ($permit) {
+                    $values = [
+                        'applicant_full_name' => $permit->applicant_name,
+                        'plot_number' => $permit->land_plot_number,
+                        'land_location_district' => $permit->location,
+                    ];
+                }
+                break;
+        }
+
+        return $values;
     }
 
     private function buildFormSchema(?Service $service): array
@@ -522,6 +614,11 @@ class AdminManualRequestController extends Controller
                         'registrant_phone' => $manual_request->user_phone,
                         'registrant_email' => $manual_request->user_email,
                     ]);
+                } else {
+                    $proj->update([
+                        'project_name' => (string) ($values['project_name'] ?? $proj->project_name),
+                        'location_text' => (string) ($values['location_text'] ?? $proj->location_text),
+                    ]);
                 }
                 $type = Project::class;
                 $id = $proj->id;
@@ -544,6 +641,11 @@ class AdminManualRequestController extends Controller
                         'registrant_phone' => $manual_request->user_phone,
                         'approved_by' => Auth::id(),
                         'approved_at' => now(),
+                    ]);
+                } else {
+                    $bl->update([
+                        'company_name' => (string) ($values['company_name'] ?? $bl->company_name),
+                        'license_type' => (string) ($values['license_type'] ?? $bl->license_type),
                     ]);
                 }
                 $type = BusinessLicense::class;
