@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ApartmentTransferController extends Controller
@@ -85,76 +86,85 @@ class ApartmentTransferController extends Controller
             return back()->withErrors(['transfer_date' => 'Duplicate pending transfer request detected'])->withInput();
         }
 
-        $ref = null;
-        do {
-            $ref = 'IPAMS-TRF-' . date('Y') . '-' . substr($apartment->id, 0, 8) . '-' . substr((string) Str::uuid(), 0, 8);
-        } while (ApartmentTransfer::where('transfer_reference_number', $ref)->exists());
+        try {
+            DB::beginTransaction();
 
-        $previousOwner = OwnerProfile::where('national_id', $request->previous_owner_id)->first();
-        if (! $previousOwner) {
-            $previousOwner = OwnerProfile::create([
-                'full_name' => $request->previous_owner_name,
-                'national_id' => $request->previous_owner_id,
-            ]);
-        }
-        if (! $apartment->owner_profile_id) {
-            $apartment->owner_profile_id = $previousOwner->id;
-            $apartment->save();
-            OwnershipHistory::create([
-                'apartment_id' => $apartment->id,
-                'owner_profile_id' => $previousOwner->id,
-                'started_at' => now()->toDateString(),
-                'recorded_by_admin_id' => Auth::id(),
-            ]);
-        }
+            $ref = null;
+            do {
+                $ref = 'IPAMS-TRF-' . date('Y') . '-' . substr($apartment->id, 0, 8) . '-' . substr((string) Str::uuid(), 0, 8);
+            } while (ApartmentTransfer::where('transfer_reference_number', $ref)->exists());
 
-        $docs_path = null;
-        if ($request->hasFile('supporting_documents')) {
-            $docs_path = $request->file('supporting_documents')->store('transfer_docs', 'public');
-        }
-
-        $transfer = ApartmentTransfer::create([
-            'transfer_reference_number' => $ref,
-            'transfer_date' => $request->transfer_date,
-            'apartment_number' => $apartment->id,
-            'unit_number' => $request->unit_number,
-            'previous_owner_name' => $request->previous_owner_name,
-            'previous_owner_id' => $request->previous_owner_id,
-            'new_owner_name' => $request->new_owner_name,
-            'new_owner_id' => $request->new_owner_id,
-            'transfer_reason' => $request->transfer_reason,
-            'supporting_documents_path' => $docs_path,
-            'approval_status' => 'Pending',
-        ]);
-
-        ManualOperationLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'admin_create_apartment_transfer',
-            'target_type' => 'ApartmentTransfer',
-            'target_id' => (string) $transfer->id,
-            'details' => ['ref' => $transfer->transfer_reference_number],
-        ]);
-
-        $service = Service::where('slug', 'property-transfer-services')->first();
-        if ($service) {
-            ServiceRequest::create([
-                'service_id' => $service->id,
-                'user_id' => Auth::id(),
-                'user_full_name' => $request->new_owner_name,
-                'user_email' => null,
-                'user_phone' => null,
-                'user_national_id' => $request->new_owner_id,
-                'request_details' => [
+            $previousOwner = OwnerProfile::where('national_id', $request->previous_owner_id)->first();
+            if (! $previousOwner) {
+                $previousOwner = OwnerProfile::create([
+                    'full_name' => $request->previous_owner_name,
+                    'national_id' => $request->previous_owner_id,
+                ]);
+            }
+            if (! $apartment->owner_profile_id) {
+                $apartment->owner_profile_id = $previousOwner->id;
+                $apartment->save();
+                OwnershipHistory::create([
                     'apartment_id' => $apartment->id,
-                    'previous_owner_id' => $request->previous_owner_id,
-                    'transfer_reason' => $request->transfer_reason,
-                    'transfer_reference' => $transfer->transfer_reference_number,
-                ],
-                'status' => 'pending',
-            ]);
-        }
+                    'owner_profile_id' => $previousOwner->id,
+                    'started_at' => now()->toDateString(),
+                    'recorded_by_admin_id' => Auth::id(),
+                ]);
+            }
 
-        return redirect()->route('admin.apartment-transfers.index')->with('success', 'Transfer request created successfully. Status: Pending.');
+            $docs_path = null;
+            if ($request->hasFile('supporting_documents')) {
+                $docs_path = $request->file('supporting_documents')->store('transfer_docs', 'public');
+            }
+
+            $transfer = ApartmentTransfer::create([
+                'transfer_reference_number' => $ref,
+                'transfer_date' => $request->transfer_date,
+                'apartment_number' => $apartment->id,
+                'unit_number' => $request->unit_number,
+                'previous_owner_name' => $request->previous_owner_name,
+                'previous_owner_id' => $request->previous_owner_id,
+                'new_owner_name' => $request->new_owner_name,
+                'new_owner_id' => $request->new_owner_id,
+                'transfer_reason' => $request->transfer_reason,
+                'supporting_documents_path' => $docs_path,
+                'approval_status' => 'Pending',
+            ]);
+
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'admin_create_apartment_transfer',
+                'target_type' => 'ApartmentTransfer',
+                'target_id' => (string) $transfer->id,
+                'details' => ['ref' => $transfer->transfer_reference_number],
+            ]);
+
+            $service = Service::where('slug', 'property-transfer-services')->first();
+            if ($service) {
+                ServiceRequest::create([
+                    'service_id' => $service->id,
+                    'user_id' => Auth::id(),
+                    'user_full_name' => $request->new_owner_name,
+                    'user_email' => null,
+                    'user_phone' => null,
+                    'user_national_id' => $request->new_owner_id,
+                    'request_details' => [
+                        'apartment_id' => $apartment->id,
+                        'previous_owner_id' => $request->previous_owner_id,
+                        'transfer_reason' => $request->transfer_reason,
+                        'transfer_reference' => $transfer->transfer_reference_number,
+                    ],
+                    'status' => 'pending',
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('admin.apartment-transfers.index')->with('success', 'Transfer request created successfully. Status: Pending.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to create transfer request: ' . $e->getMessage()])->withInput();
+        }
     }
 
     public function approve(Request $request, ApartmentTransfer $transfer)
@@ -162,43 +172,60 @@ class ApartmentTransferController extends Controller
         $request->validate([
             'approval_reason' => 'nullable|string|max:1000',
         ]);
-        $transfer->approval_status = 'Approved';
-        $transfer->approved_by_admin_id = Auth::id();
-        $transfer->approved_at = now();
-        $transfer->approval_reason = $request->approval_reason;
-        $transfer->save();
 
-        // Update ownership history on approval
-        $apartment = Apartment::find($transfer->apartment_number);
-        $newOwner = OwnerProfile::where('national_id', $transfer->new_owner_id)->first();
-        if ($apartment && $newOwner) {
-            OwnershipHistory::where('apartment_id', $apartment->id)
-                ->whereNull('ended_at')
-                ->latest()
-                ->first()?->update(['ended_at' => $transfer->transfer_date, 'transfer_reference_number' => $transfer->transfer_reference_number]);
+        try {
+            DB::beginTransaction();
 
-            $apartment->owner_profile_id = $newOwner->id;
-            $apartment->save();
-            OwnershipHistory::create([
-                'apartment_id' => $apartment->id,
-                'owner_profile_id' => $newOwner->id,
-                'started_at' => $transfer->transfer_date,
-                'transfer_reference_number' => $transfer->transfer_reference_number,
-                'recorded_by_admin_id' => Auth::id(),
+            $transfer->approval_status = 'Approved';
+            $transfer->approved_by_admin_id = Auth::id();
+            $transfer->approved_at = now();
+            $transfer->approval_reason = $request->approval_reason;
+            $transfer->save();
+
+            // Update ownership history on approval
+            $apartment = Apartment::find($transfer->apartment_number);
+            $newOwner = OwnerProfile::where('national_id', $transfer->new_owner_id)->first();
+            if (! $newOwner) {
+                $newOwner = OwnerProfile::create([
+                    'full_name' => $transfer->new_owner_name,
+                    'national_id' => $transfer->new_owner_id,
+                ]);
+            }
+
+            if ($apartment && $newOwner) {
+                OwnershipHistory::where('apartment_id', $apartment->id)
+                    ->whereNull('ended_at')
+                    ->latest()
+                    ->first()?->update(['ended_at' => $transfer->transfer_date, 'transfer_reference_number' => $transfer->transfer_reference_number]);
+
+                $apartment->owner_profile_id = $newOwner->id;
+                $apartment->save();
+                OwnershipHistory::create([
+                    'apartment_id' => $apartment->id,
+                    'owner_profile_id' => $newOwner->id,
+                    'started_at' => $transfer->transfer_date,
+                    'transfer_reference_number' => $transfer->transfer_reference_number,
+                    'recorded_by_admin_id' => Auth::id(),
+                ]);
+            }
+
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'transfer_request_approved',
+                'target_type' => 'ApartmentTransfer',
+                'target_id' => (string) $transfer->id,
+                'details' => [
+                    'reason' => $request->approval_reason,
+                ],
             ]);
+
+            DB::commit();
+
+            return back()->with('success', 'Transfer approved');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Approval failed: ' . $e->getMessage()]);
         }
-
-        \App\Models\ManualOperationLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'transfer_request_approved',
-            'target_type' => 'ApartmentTransfer',
-            'target_id' => (string) $transfer->id,
-            'details' => [
-                'reason' => $request->approval_reason,
-            ],
-        ]);
-
-        return back()->with('success', 'Transfer approved');
     }
 
     public function reject(Request $request, ApartmentTransfer $transfer)

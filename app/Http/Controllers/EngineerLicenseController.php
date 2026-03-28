@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class EngineerLicenseController extends Controller
 {
@@ -28,47 +29,56 @@ class EngineerLicenseController extends Controller
             'graduation_year' => 'nullable|integer|min:1900|max:'.(date('Y') + 1),
         ]);
 
-        $data = $request->only([
-            'applicant_name',
-            'email',
-            'phone',
-            'national_id',
-            'engineering_field',
-            'university',
-            'graduation_year',
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $license = EngineerLicense::create($data);
-
-        if (Auth::check()) {
-            ManualOperationLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'admin_create_engineer_license',
-                'target_type' => 'EngineerLicense',
-                'target_id' => (string) $license->id,
-                'details' => ['applicant_name' => $license->applicant_name],
+            $data = $request->only([
+                'applicant_name',
+                'email',
+                'phone',
+                'national_id',
+                'engineering_field',
+                'university',
+                'graduation_year',
             ]);
-        }
 
-        $service = Service::where('slug', 'engineer-license')->first();
-        if ($service) {
-            ServiceRequest::create([
-                'service_id' => $service->id,
-                'user_id' => null,
-                'user_full_name' => $license->applicant_name,
-                'user_email' => $license->email,
-                'user_phone' => $license->phone,
-                'user_national_id' => $license->national_id,
-                'request_details' => [
-                    'engineering_field' => $license->engineering_field,
-                    'university' => $license->university,
-                    'graduation_year' => $license->graduation_year,
-                    'engineer_license_id' => $license->id,
-                ],
-                'status' => 'pending',
-            ]);
-        }
+            $license = EngineerLicense::create($data);
 
-        return redirect()->route('services.engineer-license')->with('status', 'Application submitted successfully. Pending review.');
+            if (Auth::check()) {
+                ManualOperationLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'admin_create_engineer_license',
+                    'target_type' => 'EngineerLicense',
+                    'target_id' => (string) $license->id,
+                    'details' => ['applicant_name' => $license->applicant_name],
+                ]);
+            }
+
+            $service = Service::where('slug', 'engineer-license')->first();
+            if ($service) {
+                ServiceRequest::create([
+                    'service_id' => $service->id,
+                    'user_id' => null,
+                    'user_full_name' => $license->applicant_name,
+                    'user_email' => $license->email,
+                    'user_phone' => $license->phone,
+                    'user_national_id' => $license->national_id,
+                    'request_details' => [
+                        'engineering_field' => $license->engineering_field,
+                        'university' => $license->university,
+                        'graduation_year' => $license->graduation_year,
+                        'engineer_license_id' => $license->id,
+                    ],
+                    'status' => 'pending',
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('services.engineer-license')->with('status', 'Application submitted successfully. Pending review.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Application failed: ' . $e->getMessage()])->withInput();
+        }
     }
 }

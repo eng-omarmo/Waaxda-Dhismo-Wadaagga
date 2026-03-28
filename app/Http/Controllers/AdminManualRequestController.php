@@ -17,6 +17,7 @@ use App\Support\StandardIdentifier;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -386,49 +387,58 @@ class AdminManualRequestController extends Controller
         $diff = abs((float) $validated['amount'] - (float) $service->price);
         $status = $diff < 0.01 ? 'verified' : 'discrepancy';
 
-        $pv = PaymentVerification::create([
-            'service_request_id' => $manual_request->id,
-            'amount' => $validated['amount'],
-            'payment_date' => $validated['payment_date'],
-            'reference_number' => $validated['reference_number'],
-            'verified_by' => Auth::id(),
-            'verified_at' => now(),
-            'status' => $status,
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
-        $manual_request->status = $status;
-        $manual_request->processed_by = Auth::id();
-        $manual_request->processed_at = now();
-        $manual_request->save();
-
-        ManualOperationLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'verify_payment',
-            'target_type' => 'ServiceRequest',
-            'target_id' => (string) $manual_request->id,
-            'details' => ['payment_id' => $pv->id, 'status' => $status],
-        ]);
-
-        if ($status === 'verified') {
-            try {
-                $this->generateCertificate($request, $manual_request);
-            } catch (\Throwable $e) {
-            }
-        }
-
         try {
+            DB::beginTransaction();
+
+            $pv = PaymentVerification::create([
+                'service_request_id' => $manual_request->id,
+                'amount' => $validated['amount'],
+                'payment_date' => $validated['payment_date'],
+                'reference_number' => $validated['reference_number'],
+                'verified_by' => Auth::id(),
+                'verified_at' => now(),
+                'status' => $status,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $manual_request->status = $status;
+            $manual_request->processed_by = Auth::id();
+            $manual_request->processed_at = now();
+            $manual_request->save();
+
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'verify_payment',
+                'target_type' => 'ServiceRequest',
+                'target_id' => (string) $manual_request->id,
+                'details' => ['payment_id' => $pv->id, 'status' => $status],
+            ]);
+
+            DB::commit();
+
             if ($status === 'verified') {
-                Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $pv));
-
-                return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Payment verified and user notified');
-            } else {
-                Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceProcessingException($manual_request, 'Payment amount discrepancy'));
-
-                return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Discrepancy recorded and user notified');
+                try {
+                    $this->generateCertificate($request, $manual_request);
+                } catch (\Throwable $e) {
+                }
             }
-        } catch (\Throwable $e) {
-            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Notification failed');
+
+            try {
+                if ($status === 'verified') {
+                    Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $pv));
+
+                    return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Payment verified and user notified');
+                } else {
+                    Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceProcessingException($manual_request, 'Payment amount discrepancy'));
+
+                    return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Discrepancy recorded and user notified');
+                }
+            } catch (\Throwable $e) {
+                return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Notification failed');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Verification failed: ' . $e->getMessage());
         }
     }
 
@@ -443,33 +453,42 @@ class AdminManualRequestController extends Controller
             'reconciliation_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $payment->reconciled_amount = $validated['reconciled_amount'];
-        $payment->reconciliation_notes = $validated['reconciliation_notes'] ?? null;
-        $payment->status = 'verified';
-        $payment->save();
-
-        $manual_request->status = 'verified';
-        $manual_request->save();
-
-        ManualOperationLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'reconcile_payment',
-            'target_type' => 'ServiceRequest',
-            'target_id' => (string) $manual_request->id,
-            'details' => ['payment_id' => $payment->id],
-        ]);
-
         try {
-            $this->generateCertificate($request, $manual_request);
-        } catch (\Throwable $e) {
-        }
+            DB::beginTransaction();
 
-        try {
-            Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $payment));
-        } catch (\Throwable $e) {
-        }
+            $payment->reconciled_amount = $validated['reconciled_amount'];
+            $payment->reconciliation_notes = $validated['reconciliation_notes'] ?? null;
+            $payment->status = 'verified';
+            $payment->save();
 
-        return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Payment reconciled and user notified');
+            $manual_request->status = 'verified';
+            $manual_request->save();
+
+            ManualOperationLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'reconcile_payment',
+                'target_type' => 'ServiceRequest',
+                'target_id' => (string) $manual_request->id,
+                'details' => ['payment_id' => $payment->id],
+            ]);
+
+            DB::commit();
+
+            try {
+                $this->generateCertificate($request, $manual_request);
+            } catch (\Throwable $e) {
+            }
+
+            try {
+                Mail::to($manual_request->user_email)->send(new \App\Mail\ServiceRequestVerified($manual_request, $payment));
+            } catch (\Throwable $e) {
+            }
+
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Payment reconciled and user notified');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Reconciliation failed: ' . $e->getMessage());
+        }
     }
 
     public function generateCertificate(Request $request, ServiceRequest $manual_request)
@@ -488,6 +507,9 @@ class AdminManualRequestController extends Controller
         if (! $service) {
             return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Service not found for request');
         }
+
+        try {
+            DB::beginTransaction();
 
         $classification = match ($service->slug) {
             'project-registration' => 'Project Registration',
@@ -589,7 +611,13 @@ class AdminManualRequestController extends Controller
             'details' => ['certificate_id' => $certificate->id, 'payment_id' => $pv->id],
         ]);
 
+        DB::commit();
+
         return redirect()->route('admin.manual-requests.show', $manual_request)->with('status', 'Certificate generated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('admin.manual-requests.show', $manual_request)->with('error', 'Certificate generation failed: ' . $e->getMessage());
+        }
     }
 
     private function persistDomainEntity(ServiceRequest $manual_request): array

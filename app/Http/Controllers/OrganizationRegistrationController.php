@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -38,59 +39,68 @@ class OrganizationRegistrationController extends Controller
             return back()->withErrors(['name' => 'Too many attempts. Please try again later.'])->withInput();
         }
 
-        $org = Organization::create([
-            'name' => $request->name,
-            'registration_number' => $request->registration_number,
-            'address' => $request->address,
-            'type' => $request->type,
-            'contact_full_name' => $request->contact_full_name,
-            'contact_role' => $request->contact_role,
-            'contact_phone' => $request->contact_phone,
-            'contact_email' => $request->contact_email,
-            'status' => 'pending',
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $service = Service::where('slug', 'developer-registration')->first();
-        if ($service) {
-            ServiceRequest::create([
-                'service_id' => $service->id,
-                'user_id' => Auth::id(),
-                'user_full_name' => $org->contact_full_name,
-                'user_email' => $org->contact_email,
-                'user_phone' => $org->contact_phone,
-                'user_national_id' => null,
-                'request_details' => [
-                    'organization_name' => $org->name,
-                    'registration_number' => $org->registration_number,
-                    'type' => $org->type,
-                    'organization_id' => $org->id,
-                ],
+            $org = Organization::create([
+                'name' => $request->name,
+                'registration_number' => $request->registration_number,
+                'address' => $request->address,
+                'type' => $request->type,
+                'contact_full_name' => $request->contact_full_name,
+                'contact_role' => $request->contact_role,
+                'contact_phone' => $request->contact_phone,
+                'contact_email' => $request->contact_email,
                 'status' => 'pending',
             ]);
-        }
 
-        if ($request->hasFile('documents')) {
-            foreach ($request->file('documents') as $file) {
-                $path = $file->store('organization_docs', 'public');
-                \DB::table('organization_documents')->insert([
-                    'organization_id' => $org->id,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'file_type' => $file->getClientOriginalExtension(),
-                    'document_label' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+            $service = Service::where('slug', 'developer-registration')->first();
+            if ($service) {
+                ServiceRequest::create([
+                    'service_id' => $service->id,
+                    'user_id' => Auth::id(),
+                    'user_full_name' => $org->contact_full_name,
+                    'user_email' => $org->contact_email,
+                    'user_phone' => $org->contact_phone,
+                    'user_national_id' => null,
+                    'request_details' => [
+                        'organization_name' => $org->name,
+                        'registration_number' => $org->registration_number,
+                        'type' => $org->type,
+                        'organization_id' => $org->id,
+                    ],
+                    'status' => 'pending',
                 ]);
             }
-        }
 
-        try {
-            Mail::to($org->contact_email)->send(new OrganizationRegistered($org));
-        } catch (\Throwable $e) {
-        } finally {
-            RateLimiter::hit($key, 60);
-        }
+            if ($request->hasFile('documents')) {
+                foreach ($request->file('documents') as $file) {
+                    $path = $file->store('organization_docs', 'public');
+                    DB::table('organization_documents')->insert([
+                        'organization_id' => $org->id,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'file_type' => $file->getClientOriginalExtension(),
+                        'document_label' => null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
 
-        return redirect()->route('services.developer-registration')->with('status', 'Registration received. Please check your email.');
+            DB::commit();
+
+            try {
+                Mail::to($org->contact_email)->send(new OrganizationRegistered($org));
+            } catch (\Throwable $e) {
+            } finally {
+                RateLimiter::hit($key, 60);
+            }
+
+            return redirect()->route('services.developer-registration')->with('status', 'Registration received. Please check your email.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Registration failed: ' . $e->getMessage()])->withInput();
+        }
     }
 }

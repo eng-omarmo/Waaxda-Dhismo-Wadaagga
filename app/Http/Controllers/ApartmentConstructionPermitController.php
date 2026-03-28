@@ -105,63 +105,72 @@ class ApartmentConstructionPermitController extends Controller
 
         $userEmail = auth()->check() ? auth()->user()->email : ($validated['applicant_email'] ?? '');
 
-        $req = ServiceRequest::firstOrCreate(
-            [
-                'service_id' => $service->id,
-                'user_email' => $userEmail,
-                'status' => 'pending',
-            ],
-            [
-                'user_id' => auth()->id(),
-                'user_full_name' => $validated['applicant_full_name'],
-                'user_email' => $userEmail,
-                'user_phone' => $validated['applicant_phone'],
-                'user_national_id' => $validated['applicant_national_id'],
-                'request_details' => $requestDetails,
-            ]
-        );
+        try {
+            DB::beginTransaction();
 
-        if (Auth::check()) {
-            ManualOperationLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'admin_create_construction_permit_request',
-                'target_type' => 'ServiceRequest',
-                'target_id' => (string) $req->id,
-                'details' => ['applicant_name' => $validated['applicant_full_name']],
+            $req = ServiceRequest::firstOrCreate(
+                [
+                    'service_id' => $service->id,
+                    'user_email' => $userEmail,
+                    'status' => 'pending',
+                ],
+                [
+                    'user_id' => auth()->id(),
+                    'user_full_name' => $validated['applicant_full_name'],
+                    'user_email' => $userEmail,
+                    'user_phone' => $validated['applicant_phone'],
+                    'user_national_id' => $validated['applicant_national_id'],
+                    'request_details' => $requestDetails,
+                ]
+            );
+
+            if (Auth::check()) {
+                ManualOperationLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'admin_create_construction_permit_request',
+                    'target_type' => 'ServiceRequest',
+                    'target_id' => (string) $req->id,
+                    'details' => ['applicant_name' => $validated['applicant_full_name']],
+                ]);
+            }
+
+            if (! $req->wasRecentlyCreated) {
+                $existingDetails = (array) $req->request_details;
+                $req->request_details = array_merge($existingDetails, $requestDetails);
+                if (! $req->user_full_name) {
+                    $req->user_full_name = $validated['applicant_full_name'];
+                }
+                if (! $req->user_phone) {
+                    $req->user_phone = $validated['applicant_phone'];
+                }
+                if (! $req->user_national_id) {
+                    $req->user_national_id = $validated['applicant_national_id'];
+                }
+                $req->save();
+            }
+
+            ApartmentConstructionPermit::create([
+                'applicant_name' => $validated['applicant_full_name'],
+                'national_id_or_company_registration' => $validated['applicant_national_id'],
+                'land_plot_number' => $validated['plot_number'],
+                'location' => $validated['land_location_district'],
+                'number_of_floors' => 1,
+                'number_of_units' => 1,
+                'approved_drawings_path' => null,
+                'engineer_or_architect_name' => 'Pending',
+                'engineer_or_architect_license' => null,
+                'permit_issue_date' => null,
+                'permit_expiry_date' => null,
+                'permit_status' => 'Pending',
             ]);
+
+            DB::commit();
+
+            return redirect()->route('services.construction-permit.thankyou', ['id' => $req->id]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'An error occurred while processing your application. Please try again.'])->withInput();
         }
-
-        if (! $req->wasRecentlyCreated) {
-            $existingDetails = (array) $req->request_details;
-            $req->request_details = array_merge($existingDetails, $requestDetails);
-            if (! $req->user_full_name) {
-                $req->user_full_name = $validated['applicant_full_name'];
-            }
-            if (! $req->user_phone) {
-                $req->user_phone = $validated['applicant_phone'];
-            }
-            if (! $req->user_national_id) {
-                $req->user_national_id = $validated['applicant_national_id'];
-            }
-            $req->save();
-        }
-
-        ApartmentConstructionPermit::create([
-            'applicant_name' => $validated['applicant_full_name'],
-            'national_id_or_company_registration' => $validated['applicant_national_id'],
-            'land_plot_number' => $validated['plot_number'],
-            'location' => $validated['land_location_district'],
-            'number_of_floors' => 1,
-            'number_of_units' => 1,
-            'approved_drawings_path' => null,
-            'engineer_or_architect_name' => 'Pending',
-            'engineer_or_architect_license' => null,
-            'permit_issue_date' => null,
-            'permit_expiry_date' => null,
-            'permit_status' => 'Pending',
-        ]);
-
-        return redirect()->route('services.construction-permit.thankyou', ['id' => $req->id]);
     }
 
     public function index(Request $request)
