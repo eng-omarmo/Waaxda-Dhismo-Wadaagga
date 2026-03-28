@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Service;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectRegistrationController extends Controller
 {
@@ -32,6 +35,24 @@ class ProjectRegistrationController extends Controller
             'registrant_phone' => $validated['registrant_phone'],
             'registrant_email' => $validated['registrant_email'],
         ]);
+
+        $service = Service::where('slug', 'project-registration')->first();
+        if ($service) {
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => Auth::id(),
+                'user_full_name' => $project->registrant_name,
+                'user_email' => $project->registrant_email,
+                'user_phone' => $project->registrant_phone,
+                'user_national_id' => null,
+                'request_details' => [
+                    'project_name' => $project->project_name,
+                    'location_text' => $project->location_text,
+                    'project_id' => $project->id,
+                ],
+                'status' => 'pending',
+            ]);
+        }
 
         return redirect()->route('services.project-registration.thankyou', ['id' => $project->id]);
     }

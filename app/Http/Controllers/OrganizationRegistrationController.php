@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Mail\OrganizationRegistered;
 use App\Models\Organization;
+use App\Models\Service;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -46,6 +49,25 @@ class OrganizationRegistrationController extends Controller
             'contact_email' => $request->contact_email,
             'status' => 'pending',
         ]);
+
+        $service = Service::where('slug', 'developer-registration')->first();
+        if ($service) {
+            ServiceRequest::create([
+                'service_id' => $service->id,
+                'user_id' => Auth::id(),
+                'user_full_name' => $org->contact_full_name,
+                'user_email' => $org->contact_email,
+                'user_phone' => $org->contact_phone,
+                'user_national_id' => null,
+                'request_details' => [
+                    'organization_name' => $org->name,
+                    'registration_number' => $org->registration_number,
+                    'type' => $org->type,
+                    'organization_id' => $org->id,
+                ],
+                'status' => 'pending',
+            ]);
+        }
 
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
